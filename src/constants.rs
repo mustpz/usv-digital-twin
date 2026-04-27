@@ -1,3 +1,3 @@
-// Deniz Suyu Optik Sabitleri
+// Seawater Optical Constants
 pub const WATER_REFRACTIVE_INDEX: f64 = 1.333; 
 pub const SEA_LEVEL_PRESSURE: f64 = 1013.25; // hPa
