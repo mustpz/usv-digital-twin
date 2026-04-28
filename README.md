@@ -1,9 +1,8 @@
-# High-Performance Digital Twin for USV Multispectral Camouflage Systems
+# Real-Time Digital Twin Prototype for USV Multispectral Camouflage Systems
 
 ## Project Vision
 A modular real-time digital twin framework for simulating environmental interaction 
-and visual signature behavior of Unmanned Surface Vehicles (USVs). This project focuses on building a high-performance simulation environment 
-to model multispectral camouflage responses under dynamic environmental conditions.
+and visual signature behavior of Unmanned Surface Vehicles (USVs). This project focuses on building a real-time simulation environment to model multispectral camouflage responses under dynamic environmental conditions. Multispectral modeling is planned for future implementation and is not yet included.
 
 ## Current Demo 
 ![Current Simulation State](screenshot.png)
@@ -16,6 +15,7 @@ to model multispectral camouflage responses under dynamic environmental conditio
 - Camera and lighting system
 - Modular simulation architecture
 
+The demo currently shows a static USV entity in a 3D environment with camera and lighting systems initialized. No physics or control system is yet implemented.
 This represents the **initial functional simulation skeleton** 
 for future multispectral modeling.
 
@@ -44,6 +44,8 @@ The core algorithms and optical models within this digital twin are grounded in 
 * **Sherman Karp** – *Fundamentals of Electro-Optics Systems Design*
 * **William D. Rogatto** – *Electro-Optical Components*
 * **George W. Masters** – *Electro-Optical Systems Test and Evaluation*
+
+These references guide the future of implementation of sensor and optical response models.
 
 ## Project Status
 Stage: Erly Prototype / Simulation Skeleton
