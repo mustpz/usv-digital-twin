@@ -5,23 +5,24 @@ pub fn setup_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // Ground plane (sea surface placeholder)
+    // Spawns a large flat surface to represent the water/ground
     commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Plane { size: 10.0 })),
-        material: materials.add(Color::rgb(0.1, 0.3, 0.5).into()),
+        mesh: meshes.add(Plane3d::default().mesh().size(20.0, 20.0)),
+        material: materials.add(StandardMaterial {
+            base_color: Color::rgb(0.2, 0.5, 0.2), // Greenish surface
+            ..default()
+        }),
         ..default()
     });
 
-    // Light
+    // Spawns a light source so we can see the 3D objects
     commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 4000.0,
+            shadows_enabled: true,
+            ..default()
+        },
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
-        ..default()
-    });
-
-    // Camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-5.0, 5.0, 10.0)
-            .looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }
