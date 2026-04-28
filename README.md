@@ -7,7 +7,7 @@ to model multispectral camouflage responses under dynamic environmental conditio
 
 ## Current Demo 
 ![Current Simulation State](screenshot.png)
-The Current Prototype Demonstrates:
+ The Current Prototype Demonstrates:
 
 - Real-time 3D simulation environment
 - USV placeholder entity (vehicle model)
