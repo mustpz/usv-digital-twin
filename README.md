@@ -27,12 +27,12 @@ To ensure maximum reliability and real-time performance, the project is architec
 
 ## Architecture 
 src/
-* ** main.rs **         # Application entry point
-* ** constants.rs **     # Physical and simulation constants
-* ** environment.rs **   # Environmental state modeling
-* ** vehicle.rs **       # USV entity creation
-* ** scene.rs **        # Scene setup (camera, light, sea)
-* ** models.rs **       # Future sensor and optical models
+* main.rs         # Application entry point
+* constants.rs    # Physical and simulation constants
+* environment.rs  # Environmental state modeling
+* vehicle.rs      # USV entity creation
+* scene.rs        # Scene setup (camera, light, sea)
+* models.rs       # Future sensor and optical models
 
 
 ## Theoretical Foundation & References
