@@ -7,7 +7,7 @@ to model multispectral camouflage responses under dynamic environmental conditio
 
 ## Current Demo 
 ![Current Simulation State](screenshot.png)
-The current prototype demonstrates:
+The Current Prototype Demonstrates:
 
 - Real-time 3D simulation environment
 - USV placeholder entity (vehicle model)
@@ -26,13 +26,13 @@ To ensure maximum reliability and real-time performance, the project is architec
 * **Rerun:** Employed for **real-time data visualization and logging**, allowing for the monitoring of live sensor streams and performance metrics.
 
 ## Architecture 
-src/
-* main.rs         # Application entry point
-* constants.rs    # Physical and simulation constants
-* environment.rs  # Environmental state modeling
-* vehicle.rs      # USV entity creation
-* scene.rs        # Scene setup (camera, light, sea)
-* models.rs       # Future sensor and optical models
+src
+* main.rs          # Application entry point
+* constants.rs     # Physical and simulation constants
+* environment.rs   # Environmental state modeling
+* vehicle.rs       # USV entity creation
+* scene.rs         # Scene setup (camera, light, sea)
+* models.rs        # Future sensor and optical models
 
 
 ## Theoretical Foundation & References
