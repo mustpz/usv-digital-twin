@@ -48,7 +48,7 @@ The core algorithms and optical models within this digital twin are grounded in 
 These references guide the future of implementation of sensor and optical response models.
 
 ## Project Status
-Stage: Erly Prototype / Simulation Skeleton
+Stage: Early Prototype / Simulation Skeleton
 Completed:
 - [x] Core project architecture
 - [x] Modular simulation structure
