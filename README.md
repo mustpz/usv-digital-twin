@@ -5,7 +5,7 @@ A modular real-time digital twin framework for simulating environmental interact
 and visual signature behavior of Unmanned Surface Vehicles (USVs). This project focuses on building a real-time simulation environment to model multispectral camouflage responses under dynamic environmental conditions. Multispectral modeling is planned for future implementation and is not yet included.
 
 ## Current Demo 
-![Current Simulation State](screenshot.png)
+![Current Simulation State](./demo.gif)
 
   The Current Prototype Demonstrates:
 
@@ -14,10 +14,8 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 - Environmental surface representation (sea plane)
 - Camera and lighting system
 - Modular simulation architecture
-
-The demo currently shows a static USV entity in a 3D environment with camera and lighting systems initialized. No physics or control system is yet implemented.
-This represents the **initial functional simulation skeleton** 
-for future multispectral modeling.
+- Interactive Maneuvering: Real-time movement control using WASD keys.
+- Modular Controller: A dedicated vehicle control system integrated with the Bevy engine.
 
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
@@ -31,7 +29,7 @@ src
 * main.rs          # Application entry point
 * constants.rs     # Physical and simulation constants
 * environment.rs   # Environmental state modeling
-* vehicle.rs       # USV entity creation
+* vehicle.rs       # USV entity creation & Real-time movement logic
 * scene.rs         # Scene setup (camera, light, sea)
 * models.rs        # Future sensor and optical models
 
@@ -55,9 +53,9 @@ Completed:
 - [x] 3D scene initialization
 - [x] Vehicle placeholder entity
 - [x] Camera and lighting system
+- [x] Dynamic vehicle motion
 
 In progress:
-- [ ] Dynamic vehicle motion
 - [ ] Envrionment-driven response logic
 - [ ] Sensor simulation layer
 
@@ -66,3 +64,4 @@ Planned:
 - [ ] Infrared Response Simulation
 - [ ] Thermal behaviour modeling
 - [ ] Real-time environmental adaptation 
+- [ ] Autonomous Logic Layer: Integrating classical logic and ethical decision-making frameworks
