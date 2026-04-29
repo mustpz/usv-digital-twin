@@ -1,3 +1,5 @@
+use crate::vehicle::move_vehicle;
+
 use bevy::prelude::*;
 
 // Importing project modules
@@ -15,6 +17,8 @@ fn main() {
     println!("--- USV Digital Twin Simulation Starting ---");
 
     App::new()
+    .add_systems(Update, move_vehicle)
+
         // DefaultPlugins handles window creation, input, and rendering
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
