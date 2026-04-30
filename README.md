@@ -25,7 +25,7 @@ To ensure maximum reliability and real-time performance, the project is architec
 * **Rerun:** Employed for **real-time data visualization and logging**, allowing for the monitoring of live sensor streams and performance metrics.
 
 ## Architecture 
-src
+src/
 * main.rs          # Application entry point
 * constants.rs     # Physical and simulation constants
 * environment.rs   # Environmental state modeling
@@ -47,6 +47,7 @@ These references guide the future of implementation of sensor and optical respon
 
 ## Project Status
 Stage: Early Prototype / Simulation Skeleton
+
 Completed:
 - [x] Core project architecture
 - [x] Modular simulation structure
