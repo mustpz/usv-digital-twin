@@ -32,6 +32,7 @@ src/
 * vehicle.rs       # USV entity creation & Real-time movement logic
 * scene.rs         # Scene setup (camera, light, sea)
 * models.rs        # Future sensor and optical models
+* optics.rs        # Mechanism
 
 
 ## Theoretical Foundation & References
