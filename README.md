@@ -56,6 +56,7 @@ Completed:
 - [x] Vehicle placeholder entity
 - [x] Camera and lighting system
 - [x] Dynamic vehicle motion
+- [x] Sea texture
 
 In progress:
 - [ ] Envrionment-driven response logic

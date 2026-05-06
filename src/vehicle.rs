@@ -47,7 +47,7 @@ pub fn move_vehicle(
         }
         if keyboard_input.pressed(KeyCode::KeyS) {
             let back = transform.back();
-            /
+            
             transform.translation += back * speed * time.delta_seconds();
         }
 

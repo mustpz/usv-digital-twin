@@ -1,3 +1,4 @@
+use bevy::prelude::Color;
 use bevy::prelude::Vec3;
 
 /// Calculates the refracted vector using Snell's Law in vector form.
@@ -75,4 +76,35 @@ pub fn calculate_seawater_index(temp_c: f32, salinity_psu: f32) -> f64 {
     let temperature_effect = -0.0001 * ((temp_c - 20.0) as f64);
 
     n_base + salinity_effect + temperature_effect
+}
+
+/// Calculates the light attenuation factor based on depth.
+/// Using the Beer-Lambert Law: I = I0 * e^(-k * d)
+/// 
+/// # Arguments
+/// * `depth` - Current depth in meters (m).
+/// * `turbidity` - Water clarity factor (0.01 for clear ocean, 0.1+ for murky coastal water).
+/// 
+/// # Returns
+/// A visibility factor between 0.0 and 1.0 (1.0 = fully visible, 0.0 = total darkness).
+pub fn calculate_light_attenuation(depth: f32, turbidity: f32) -> f32 {
+    let depth_clamped = depth.max(0.0);
+    // Exponential decay of light intensity as it travels deeper
+    f32::exp(-turbidity * depth_clamped)
+}
+
+/// Calculates the UV offset for the seabed to simulate movement (Optical Flow).
+/// # Arguments
+/// * `velocity` - The speed of the vessel (USV) in m/s.
+/// * `time` - Elapsed time in seconds.
+pub fn calculate_seabed_uv_offset(velocity: f32, time: f32) -> f32 {
+    // Constant factor to scale the texture scrolling speed
+    let scroll_speed = 0.1;
+    (velocity * time * scroll_speed) % 1.0
+}
+
+
+pub fn get_water_clarity_color(depth: f32, n1: f32, n2: f32) -> Color {
+    let intensity = (n1 / n2).powi(2); 
+    Color::rgb(0.0, 0.1 * intensity, 0.25 * intensity)
 }
