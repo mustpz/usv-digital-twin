@@ -47,24 +47,31 @@ The core algorithms and optical models within this digital twin are grounded in 
 These references guide the future of implementation of sensor and optical response models.
 
 ## Project Status
-Stage: Early Prototype / Simulation Skeleton
+Stage: Active Technical Prototype / Simulation Framework
 
 Completed:
-- [x] Core project architecture
-- [x] Modular simulation structure
-- [x] 3D scene initialization
-- [x] Vehicle placeholder entity
-- [x] Camera and lighting system
-- [x] Dynamic vehicle motion
-- [x] Sea texture
+[x] Core Architecture: Modular Rust/Bevy-based simulation skeleton.
+
+[x] Infinite Ocean Environment: Implemented a seamless dual-plane tiling system for continuous optical flow.
+
+[x] Dynamic Optical Fog: Integrated Beer-Lambert Law-based light attenuation for realistic underwater depth perception.
+
+[x] Physical Material Surface: Integrated normal mapping with fine-tuned specular reflectance and roughness.
+
+[x] Vessel Motion: Core kinematic layer for USV movement simulation.
+
+[x] Global Lighting: Directional and ambient light synchronization for maritime environments.
 
 In progress:
-- [ ] Envrionment-driven response logic
-- [ ] Sensor simulation layer
+[ ] Procedural Water Surfaces: Implementing noise-based (Perlin/Gerstner) textures to eliminate tiling artifacts.
+
+[ ] Environment-Driven Response: Developing reactive logic based on simulated sea states.
+
+[ ] Sensor Simulation Layer: Initial work on ray-casting based LiDAR/Sonar placeholders.
 
 Planned:
-- [ ] Multispectral material modeling
-- [ ] Infrared Response Simulation
-- [ ] Thermal behaviour modeling
-- [ ] Real-time environmental adaptation 
-- [ ] Autonomous Logic Layer: Integrating classical logic and ethical decision-making frameworks
+[ ] Multispectral Modeling: Modeling surface materials for different wavelength responses.
+
+[ ] Infrared & Thermal Response: Simulating thermal signatures and IR sensor feedback.
+
+[ ] Autonomous Decision Layer: Integrating classical logic and ethical decision-making frameworks for maritime navigation.
