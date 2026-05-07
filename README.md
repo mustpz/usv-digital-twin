@@ -50,6 +50,7 @@ These references guide the future of implementation of sensor and optical respon
 Stage: Active Technical Prototype / Simulation Framework
 
 Completed:
+
 [x] Core Architecture: Modular Rust/Bevy-based simulation skeleton.
 
 [x] Infinite Ocean Environment: Implemented a seamless dual-plane tiling system for continuous optical flow.
@@ -63,6 +64,7 @@ Completed:
 [x] Global Lighting: Directional and ambient light synchronization for maritime environments.
 
 In progress:
+
 [ ] Procedural Water Surfaces: Implementing noise-based (Perlin/Gerstner) textures to eliminate tiling artifacts.
 
 [ ] Environment-Driven Response: Developing reactive logic based on simulated sea states.
@@ -70,6 +72,7 @@ In progress:
 [ ] Sensor Simulation Layer: Initial work on ray-casting based LiDAR/Sonar placeholders.
 
 Planned:
+
 [ ] Multispectral Modeling: Modeling surface materials for different wavelength responses.
 
 [ ] Infrared & Thermal Response: Simulating thermal signatures and IR sensor feedback.
