@@ -9,13 +9,17 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 
   The Current Prototype Demonstrates:
 
-- Real-time 3D simulation environment
-- USV placeholder entity (vehicle model)
-- Environmental surface representation (sea plane)
-- Camera and lighting system
-- Modular simulation architecture
-- Interactive Maneuvering: Real-time movement control using WASD keys.
-- Modular Controller: A dedicated vehicle control system integrated with the Bevy engine.
+Physically-Based Orbital Motion: Integrated wave dynamics using transverse and longitudinal wave components (Sine/Cosine synthesis) to simulate realistic elliptical particle movement for surface entities.
+
+Optics-Driven Environment (Beer-Lambert Law): Real-time light attenuation and underwater visibility calculations based on water turbidity and depth, ensuring optical fidelity in the simulation.
+
+High-Performance Infinite Ocean Loop: A dual-plane "Vagon" tiling system implemented in Rust/Bevy, utilizing modulo-based coordinate wrapping for seamless, endless environmental rendering.
+
+Atmospheric & Volumetric Fogging: Dynamic exponential fog settings that respond to underwater lighting conditions, simulating complex aquatic scattering effects.
+
+Advanced PBR Water Surface: Custom StandardMaterial configuration featuring Fresnel-based reflectance, normal mapping for micro-surface detail, and alpha-blending for realistic transparency.
+
+Interactive USV Control System: A modular vehicle controller with real-time maneuvering (WASD) integrated into the Bevy ECS (Entity Component System) architecture.
 
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
@@ -51,25 +55,27 @@ Stage: Active Technical Prototype / Simulation Framework
 
 Completed:
 
-[x] Core Architecture: Modular Rust/Bevy-based simulation skeleton.
+[x] Core Architecture: Modular Rust/Bevy-based simulation skeleton leveraging ECS (Entity Component System) for high-performance execution.
 
-[x] Infinite Ocean Environment: Implemented a seamless dual-plane tiling system for continuous optical flow.
+[x] Infinite Ocean Environment: Implemented a seamless dual-plane "Vagon" tiling system ensuring continuous optical flow without visual artifacts.
 
-[x] Dynamic Optical Fog: Integrated Beer-Lambert Law-based light attenuation for realistic underwater depth perception.
+[x] Physical Wave Dynamics: Integrated Orbital Motion by synthesizing Transverse and Longitudinal wave components (Sine/Cosine phase shifting) for realistic entity buoyancy.
 
-[x] Physical Material Surface: Integrated normal mapping with fine-tuned specular reflectance and roughness.
+[x] Dynamic Optical Fog: Integrated Beer-Lambert Law-based light attenuation, dynamically adjusting underwater visibility based on depth and water turbidity.
 
-[x] Vessel Motion: Core kinematic layer for USV movement simulation.
+[x] Advanced Material Surface: PBR (Physically Based Rendering) water surface with seamless normal mapping, Fresnel-based reflectance, and optimized roughness.
 
-[x] Global Lighting: Directional and ambient light synchronization for maritime environments.
+[x] Volumetric Atmospheric Effects: Synchronized directional and ambient lighting with exponential fog falloff to simulate complex maritime scattering.
+
+[x] Adaptive Vessel Controller: Modular kinematic layer for USV movement with real-time WASD maneuvering and physical oscillation response.
+
 
 In progress:
-
-[ ] Procedural Water Surfaces: Implementing noise-based (Perlin/Gerstner) textures to eliminate tiling artifacts.
 
 [ ] Environment-Driven Response: Developing reactive logic based on simulated sea states.
 
 [ ] Sensor Simulation Layer: Initial work on ray-casting based LiDAR/Sonar placeholders.
+
 
 Planned:
 
