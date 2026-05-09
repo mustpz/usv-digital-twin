@@ -9,34 +9,42 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 
   The Current Prototype Demonstrates:
 
-Physically-Based Orbital Motion: Integrated wave dynamics using transverse and longitudinal wave components (Sine/Cosine synthesis) to simulate realistic elliptical particle movement for surface entities.
+Interactive Physics: Real-time manipulation of sea states and vessel dynamics via an integrated GUI.
 
-Optics-Driven Environment (Beer-Lambert Law): Real-time light attenuation and underwater visibility calculations based on water turbidity and depth, ensuring optical fidelity in the simulation.
+Optical Fidelity: Physical modeling of light behavior underwater using the Beer-Lambert Law and Snell’s Law.
 
-High-Performance Infinite Ocean Loop: A dual-plane "Vagon" tiling system implemented in Rust/Bevy, utilizing modulo-based coordinate wrapping for seamless, endless environmental rendering.
+Infinite Simulation: Seamless environmental looping for long-endurance USV mission testing.
 
-Atmospheric & Volumetric Fogging: Dynamic exponential fog settings that respond to underwater lighting conditions, simulating complex aquatic scattering effects.
+ECS Architecture: High-performance, data-driven framework built with Rust for maximum memory safety and parallel execution.
 
-Advanced PBR Water Surface: Custom StandardMaterial configuration featuring Fresnel-based reflectance, normal mapping for micro-surface detail, and alpha-blending for realistic transparency.
-
-Interactive USV Control System: A modular vehicle controller with real-time maneuvering (WASD) integrated into the Bevy ECS (Entity Component System) architecture.
+Atmospheric Realism: Volumetric fog and PBR-based water surfaces that simulate realistic maritime conditions.
 
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
 
-* **Rust:** Chosen for its **memory safety** and high-performance computational efficiency, ensuring the simulation is robust enough for critical defense applications.
-* **Bevy Engine:** Utilized as the primary **3D simulation environment**, providing a high-fidelity workspace to model physical interactions.
-* **Rerun:** Employed for **real-time data visualization and logging**, allowing for the monitoring of live sensor streams and performance metrics.
+Rust: Chosen for its memory safety and high-performance computational efficiency, ensuring the simulation is robust and ready for safety-critical applications.
+
+Bevy Engine: Utilized as the primary Data-Driven 3D environment, providing a high-fidelity workspace to model complex physical interactions via ECS.
+
+bevy_egui: Employed for Real-time Parameter Orchestration, providing an integrated graphical interface to monitor and manipulate simulation variables on the fly.
 
 ## Architecture 
 src/
-* main.rs          # Application entry point
-* constants.rs     # Physical and simulation constants
-* environment.rs   # Environmental state modeling
-* vehicle.rs       # USV entity creation & Real-time movement logic
-* scene.rs         # Scene setup (camera, light, sea)
-* models.rs        # Future sensor and optical models
-* optics.rs        # Mechanism
+main.rs * Application Orchestrator: Initializes the Bevy engine, registers global resources, and schedules system execution orders.
+
+ui.rs * Interaction Layer: Implements the bevy_egui control panel. It acts as the primary interface for real-time parameter manipulation of the OceanSettings resource.
+
+constants.rs * Physical Core: Defines the OceanSettings struct and stores hardcoded environmental constants (e.g., Sea level pressure, refractive index base).
+
+optics.rs * Optical Physics Engine: Contains the mathematical implementations for Snell’s Law, Fresnel Reflectance, and the Beer-Lambert Law for light attenuation.
+
+scene.rs * Environment & Rendering: Manages the infinite ocean tiling system, volumetric fog, and orbital wave oscillations. It bridges the physical data from optics.rs to the visual mesh.
+
+vehicle.rs * Kinematic Controller: Defines the USV (Unmanned Surface Vehicle) entity, its spawn parameters, and the real-time movement logic responsive to sea state dynamics.
+
+environment.rs * Atmospheric Modeling: Handles broader environmental states and global simulation parameters.
+
+models.rs * Hardware Abstraction: Future module reserved for multispectral sensor models and advanced camera optics.
 
 
 ## Theoretical Foundation & References
@@ -51,23 +59,25 @@ The core algorithms and optical models within this digital twin are grounded in 
 These references guide the future of implementation of sensor and optical response models.
 
 ## Project Status
-Stage: Active Technical Prototype / Simulation Framework
+Stage: Active Technical Prototype / Real-Time Simulation Framework
 
 Completed:
 
-[x] Core Architecture: Modular Rust/Bevy-based simulation skeleton leveraging ECS (Entity Component System) for high-performance execution.
+[x] Core Architecture: Modular Rust/Bevy-based simulation skeleton leveraging ECS (Entity Component System) for high-performance, memory-safe execution.
 
-[x] Infinite Ocean Environment: Implemented a seamless dual-plane "Vagon" tiling system ensuring continuous optical flow without visual artifacts.
+[x] Real-Time Control Interface: Integrated a dynamic Graphical User Interface (GUI) using bevy_egui, allowing live manipulation of physical, optical, and navigational parameters without restarting the simulation.
 
-[x] Physical Wave Dynamics: Integrated Orbital Motion by synthesizing Transverse and Longitudinal wave components (Sine/Cosine phase shifting) for realistic entity buoyancy.
+[x] Infinite Ocean Environment: Implemented a seamless dual-plane tiling system ensuring continuous optical flow and environment looping.
 
-[x] Dynamic Optical Fog: Integrated Beer-Lambert Law-based light attenuation, dynamically adjusting underwater visibility based on depth and water turbidity.
+[x] Physical Wave Dynamics: Integrated Orbital Motion by synthesizing Transverse and Longitudinal wave components (Sine/Cosine phase shifting). This creates a non-linear, high-fidelity surface oscillation that directly affects entity behavior.
 
-[x] Advanced Material Surface: PBR (Physically Based Rendering) water surface with seamless normal mapping, Fresnel-based reflectance, and optimized roughness.
+[x] Dynamic Optical Modeling: Implemented the Beer-Lambert Law for light attenuation. Underwater visibility and fog density are dynamically calculated based on real-time Turbidity (Absorption) and Depth variables.
 
-[x] Volumetric Atmospheric Effects: Synchronized directional and ambient lighting with exponential fog falloff to simulate complex maritime scattering.
+[x] Environmental Physics Resource: Centralized simulation state management using Rust Resources, enabling synchronized updates across the physics, optics, and rendering layers.
 
-[x] Adaptive Vessel Controller: Modular kinematic layer for USV movement with real-time WASD maneuvering and physical oscillation response.
+[x] Advanced Material Surface: PBR (Physically Based Rendering) water surface with seamless normal mapping, Fresnel-based reflectance, and optimized specular roughness for realistic sea-surface glint.
+
+[x] Kinematic Vessel Controller: Modular maneuvering layer for USV movement with real-time velocity adjustments and physical oscillation response.
 
 
 In progress:

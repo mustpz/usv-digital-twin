@@ -4,4 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+# Bevy engine with required features for textures and physical rendering
 bevy = { version = "0.13", features = ["png", "jpeg", "bevy_pbr"] }
+
+# UI Library for the control panel (Version 0.25 is compatible with Bevy 0.13)
+bevy_egui = "0.25"

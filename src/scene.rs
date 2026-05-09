@@ -1,11 +1,11 @@
 use bevy::prelude::*;
-// Essential for seamless texture wrapping and physical rendering consistency
-use bevy::render::render_resource::{AddressMode, SamplerDescriptor}; 
-use crate::optics::{calculate_light_attenuation, calculate_seabed_uv_offset};
+use crate::constants::OceanSettings;
+use crate::optics::calculate_light_attenuation;
 
 #[derive(Component)]
 pub struct SeabedComponent;
 
+/// Initializes the scene with two infinite planes and underwater atmospheric effects.
 pub fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -13,26 +13,25 @@ pub fn setup_scene(
     asset_server: Res<AssetServer>,
 ) {
     // 1. MATERIAL & OPTICAL PROPERTIES
-    // Reflectance and roughness are tuned for realistic light interaction on seawater.
+    // Creating the water material with predefined textures and physical reflectance.
     let water_material = materials.add(StandardMaterial {
         base_color_texture: Some(asset_server.load("textures/seawater_texture.png")),
         base_color: Color::rgba(0.0, 0.12, 0.28, 0.75),
         normal_map_texture: Some(asset_server.load("textures/water_normal_map_seamless.png")),
         
-        // FRESNEL EFFECT: 0.5 reflectance provides a balance between refraction and surface reflection.
+        // FRESNEL EFFECT: Balancing refraction and surface reflection.
         reflectance: 0.5,
-        // SPECULAR SOFTENING: Adjusted roughness to simulate natural water surface highlights.
+        // SPECULAR SOFTENING: Simulating natural sea surface roughness.
         perceptual_roughness: 0.1,
         alpha_mode: AlphaMode::Blend,
         ..default()
     });
 
-    // High-resolution mesh for the sea surface/seabed to minimize tiling artifacts.
+    // High-resolution mesh for infinite sea loop.
     let mesh_handle = meshes.add(Plane3d::default().mesh().size(500.0, 500.0));
 
     // 2. SEAMLESS TANDEM (WAGON) SYSTEM
-    // Spawning two planes to create an infinite ocean loop. 
-    // This setup prevents any visual gaps during high-speed transitions.
+    // Spawning two planes to create an infinite ocean loop.
     for i in 0..2 {
         commands.spawn((
             PbrBundle {
@@ -52,6 +51,7 @@ pub fn setup_scene(
         ..default()
     });
 
+    // Global illumination setup
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 25000.0,
@@ -68,26 +68,29 @@ pub fn setup_scene(
     });
 }
 
+/// Updates the environment, physics, and optics based on real-time UI inputs (OceanSettings).
 pub fn update_underwater_scene(
     time: Res<Time>,
+    settings: Res<OceanSettings>, // THE BRIDGE: Fetching real-time parameters from UI
     mut query_fog: Query<&mut FogSettings>,
     mut query_seabed: Query<(&mut Transform, Entity), With<SeabedComponent>>,
 ) {
     let elapsed = time.elapsed_seconds();
-    let vessel_speed = 4.5;
     let plane_size = 500.0;
     
-    // PHYSICAL WAVE PARAMETERS
-    // wave_frequency and amplitude define the sea state intensity.
-    let wave_frequency = 1.25; 
-    let wave_amplitude = 0.4;
+    // FETCHING DYNAMIC PARAMETERS
+    // These values react instantly to UI sliders
+    let vessel_speed = settings.vessel_speed;
+    let wave_frequency = settings.wave_frequency; 
+    let wave_amplitude = settings.wave_amplitude;
+    let water_turbidity = settings.turbidity;
 
     // FOG DYNAMICS: Utilizing Beer-Lambert Law for depth-based light attenuation.
     for mut fog in query_fog.iter_mut() {
-        let current_depth = 12.0; 
-        let water_turbidity = 0.04;
+        let current_depth = 12.0; // Reference depth for attenuation
         let visibility = calculate_light_attenuation(current_depth, water_turbidity);
         
+        // Adjusting atmospheric color and density based on Beer-Lambert logic
         fog.color = Color::rgb(0.0, 0.1 * visibility, 0.2 * visibility);
         let safe_visibility = visibility.max(0.001);
         fog.falloff = FogFalloff::Exponential { density: 0.03 / safe_visibility };
@@ -96,9 +99,7 @@ pub fn update_underwater_scene(
     // INFINITE LOOP & ORBITAL MOTION INTEGRATION
     let global_z_offset = (elapsed * vessel_speed) % (plane_size * 2.0);
 
-    // ORBITAL MOTION: Combining Transverse (Y) and Longitudinal (Z) components.
-    // This mimics the circular path of water particles in a surface wave, 
-    // breaking the "robotic" linear movement.
+    // PHYSICAL ORBITAL MOTION: Simulating circular water particle trajectory.
     let orbital_y = (elapsed * wave_frequency).sin() * wave_amplitude;
     let orbital_z = (elapsed * wave_frequency).cos() * (wave_amplitude * 0.6);
 
@@ -106,12 +107,12 @@ pub fn update_underwater_scene(
     for (mut transform, _) in query_seabed.iter_mut() {
         let mut target_z = (index as f32 * plane_size) - global_z_offset;
 
-        // Reset point for the infinite plane loop
+        // Plane teleportation for seamless infinite loop
         if target_z < -plane_size {
             target_z += plane_size * 2.0;
         }
 
-        // Apply linear translation combined with physical orbital oscillation
+        // Combining linear USV motion with high-fidelity orbital oscillation
         transform.translation.z = target_z + orbital_z;
         transform.translation.y = orbital_y; 
 
