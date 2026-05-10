@@ -13,11 +13,12 @@ Interactive Physics: Real-time manipulation of sea states and vessel dynamics vi
 
 Optical Fidelity: Physical modeling of light behavior underwater using the Beer-Lambert Law and Snell’s Law.
 
-Infinite Simulation: Seamless environmental looping for long-endurance USV mission testing.
-
 ECS Architecture: High-performance, data-driven framework built with Rust for maximum memory safety and parallel execution.
 
 Atmospheric Realism: Volumetric fog and PBR-based water surfaces that simulate realistic maritime conditions.
+
+This is an early multispectral digital twin prototype. While the core physics (Beer-Lambert, Snell's Law) are fully functional, you might encounter minor flickering and tiling seams. These are priority items on the roadmap, and I am actively working on moving the optical calculations entirely to WGSL shaders for flawless performance and visual stability.
+
 
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
@@ -63,24 +64,20 @@ Stage: Active Technical Prototype / Real-Time Simulation Framework
 
 Completed:
 
-[x] Core Architecture: Modular Rust/Bevy-based simulation skeleton leveraging ECS (Entity Component System) for high-performance, memory-safe execution.
+[x] Multispectral Optical Modeling: Replaced basic color shifting with a physics-based Beer-Lambert Law implementation. Light attenuation is now calculated per spectral channel (R, G, B), accurately simulating the rapid absorption of red wavelengths compared to blue, resulting in realistic depth-dependent cyan/blue color shifts.
 
-[x] Real-Time Control Interface: Integrated a dynamic Graphical User Interface (GUI) using bevy_egui, allowing live manipulation of physical, optical, and navigational parameters without restarting the simulation.
+[x] Dynamic Visibility Metrics: Integrated real-time calculation of Secchi Depth (transparency limit) based on the turbidity coefficient. The UI provides live scientific feedback on underwater visibility distances.
 
-[x] Infinite Ocean Environment: Implemented a seamless dual-plane tiling system ensuring continuous optical flow and environment looping.
+[x] Temporal Smoothing (LERP): Implemented Linear Interpolation for optical transitions. Sudden changes in turbidity or light intensity are smoothed over time to prevent visual flickering and ensure a stable, high-fidelity simulation experience.
 
-[x] Physical Wave Dynamics: Integrated Orbital Motion by synthesizing Transverse and Longitudinal wave components (Sine/Cosine phase shifting). This creates a non-linear, high-fidelity surface oscillation that directly affects entity behavior.
-
-[x] Dynamic Optical Modeling: Implemented the Beer-Lambert Law for light attenuation. Underwater visibility and fog density are dynamically calculated based on real-time Turbidity (Absorption) and Depth variables.
-
-[x] Environmental Physics Resource: Centralized simulation state management using Rust Resources, enabling synchronized updates across the physics, optics, and rendering layers.
-
-[x] Advanced Material Surface: PBR (Physically Based Rendering) water surface with seamless normal mapping, Fresnel-based reflectance, and optimized specular roughness for realistic sea-surface glint.
-
-[x] Kinematic Vessel Controller: Modular maneuvering layer for USV movement with real-time velocity adjustments and physical oscillation response.
+[x] Adaptive Alpha-Modulation: Underwater opacity and fog density are dynamically coupled with absorption variables, creating a volumetric "murkiness" effect that reflects environmental changes.
 
 
 In progress:
+
+[ ] Currently optimizing the optical engine to eliminate sudden brightness spikes during real-time turbidity shifts.
+
+[ ] Implementing sub-pixel precision for plane tiling to remove visual seams during high-speed USV navigation.
 
 [ ] Environment-Driven Response: Developing reactive logic based on simulated sea states.
 

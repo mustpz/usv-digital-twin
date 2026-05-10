@@ -6,8 +6,8 @@ use crate::constants::OceanSettings;
 /// # Arguments
 /// * `incident` - Normalized incident ray vector.
 /// * `normal` - Normalized surface normal vector.
-/// * `n1` - Refractive index of the origin medium (e.g., Air = 1.0).
-/// * `n2` - Refractive index of the destination medium (calculated via seawater model).
+/// * `n1` - Refractive index of origin medium (Air ≈ 1.0).
+/// * `n2` - Refractive index of destination medium (Seawater).
 pub fn calculate_snell_refraction(
     incident: Vec3,
     normal: Vec3,
@@ -20,17 +20,14 @@ pub fn calculate_snell_refraction(
     let mut eta = n1 / n2;
     let mut cos_theta1 = -n.dot(i);
 
-    // If the ray is exiting the medium, invert the normal and swap indices.
     if cos_theta1 < 0.0 {
         cos_theta1 = -cos_theta1;
         n = -n;
         eta = 1.0 / eta;
     }
 
-    // Term under the square root (k) based on Snell's Law derivation
     let k = 1.0 - eta * eta * (1.0 - cos_theta1 * cos_theta1);
 
-    // Check for Total Internal Reflection (TIR)
     if k < 0.0 {
         return None; 
     }
@@ -40,7 +37,6 @@ pub fn calculate_snell_refraction(
 }
 
 /// Calculates the reflection coefficient using Schlick's Approximation of Fresnel Equations.
-/// Essential for determining surface glint and water transparency.
 pub fn calculate_fresnel_reflectance(
     incident: Vec3,
     normal: Vec3,
@@ -56,66 +52,57 @@ pub fn calculate_fresnel_reflectance(
     r0 + (1.0 - r0) * (1.0 - cos_theta).powi(5)
 }
 
-/// Models light intensity reduction underwater using the Beer-Lambert Law.
-/// This determines the "visibility" or "murkiness" of the water.
+/// Models multispectral light intensity reduction underwater using the Beer-Lambert Law.
+/// This implementation uses boosted sensitivity to ensure visible changes in simulation.
 /// 
-/// # Formula: I = I0 * exp(-alpha * distance)
+/// # Formula: I(lambda) = I0 * exp(-mu(lambda) * distance * turbidity)
 pub fn calculate_beer_lambert_attenuation(
     initial_intensity: Color,
     distance: f32,
     settings: &OceanSettings,
 ) -> Color {
-    // alpha is our absorption coefficient, driven by the UI's turbidity slider
-    let alpha = settings.turbidity;
-    let attenuation = (-alpha * distance).exp();
+    // 1. Spectral absorption coefficients (m^-1)
+    // Red is absorbed significantly faster than blue in seawater.
+    let mu_red = 0.450;   
+    let mu_green = 0.050; 
+    let mu_blue = 0.020;  
+
+    // 2. Sensitivity Boosting
+    // We multiply turbidity and distance to make the exponential decay 
+    // visible on a standard 8-bit digital display.
+    let turbidity_multiplier = settings.turbidity * 10.0; 
+    let effective_dist = distance * 2.0;
+
+    // 3. Channel Attenuation Calculation
+    let atten_r = (-(mu_red * turbidity_multiplier * effective_dist)).exp();
+    let atten_g = (-(mu_green * turbidity_multiplier * effective_dist)).exp();
+    let atten_b = (-(mu_blue * turbidity_multiplier * effective_dist)).exp();
     
-    // Deconstruct the color to apply attenuation to each channel
-    let r = initial_intensity.r() * attenuation;
-    let g = initial_intensity.g() * attenuation;
-    let b = initial_intensity.b() * attenuation;
-    
-    Color::rgb(r, g, b)
+    // 4. Color Reconstruction
+    Color::rgb(
+        initial_intensity.r() * atten_r,
+        initial_intensity.g() * atten_g,
+        initial_intensity.b() * atten_b,
+    )
 }
 
-/// Calculates the dynamic refractive index of seawater based on the OceanSettings resource.
-/// Accounts for temperature and salinity variations defined in the UI.
+/// Calculates the dynamic refractive index of seawater based on OceanSettings.
 pub fn calculate_seawater_index(settings: &OceanSettings) -> f32 {
-    let n_base = 1.333; // Reference index for pure water at 20°C
-    
-    // Empirical corrections: Index increases with salinity and decreases with temperature
+    let n_base = 1.333; // Pure water at 20°C
     let salinity_correction = (settings.salinity - 35.0) * 0.0002;
     let temp_correction = (settings.temperature - 20.0) * -0.0001;
     
     (n_base + salinity_correction + temp_correction) as f32
 }
 
-/// Calculates the light attenuation factor based on depth.
-/// Using the Beer-Lambert Law: I = I0 * e^(-k * d)
-/// 
-/// # Arguments
-/// * `depth` - Current depth in meters (m).
-/// * `turbidity` - Water clarity factor (0.01 for clear ocean, 0.1+ for murky coastal water).
-/// 
-/// # Returns
-/// A visibility factor between 0.0 and 1.0 (1.0 = fully visible, 0.0 = total darkness).
-pub fn calculate_light_attenuation(depth: f32, turbidity: f32) -> f32 {
-    let depth_clamped = depth.max(0.0);
-    // Exponential decay of light intensity as it travels deeper
-    f32::exp(-turbidity * depth_clamped)
+/// Calculates the Secchi Depth (visual transparency limit) based on turbidity.
+pub fn calculate_secchi_depth(turbidity: f32) -> f32 {
+    if turbidity <= 0.0001 { return 100.0; }
+    1.7 / turbidity
 }
 
-/// Calculates the UV offset for the seabed to simulate movement (Optical Flow).
-/// # Arguments
-/// * `velocity` - The speed of the vessel (USV) in m/s.
-/// * `time` - Elapsed time in seconds.
+/// Calculates the UV offset for the seabed to simulate Optical Flow.
 pub fn calculate_seabed_uv_offset(velocity: f32, time: f32) -> f32 {
-    // Constant factor to scale the texture scrolling speed
     let scroll_speed = 0.1;
     (velocity * time * scroll_speed) % 1.0
-}
-
-/// Calculates water clarity color based on depth and refractive indices.
-pub fn get_water_clarity_color(_depth: f32, n1: f32, n2: f32) -> Color {
-    let intensity = (n1 / n2).powi(2); 
-    Color::rgb(0.0, 0.1 * intensity, 0.25 * intensity)
 }

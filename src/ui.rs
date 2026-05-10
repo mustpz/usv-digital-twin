@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::constants::OceanSettings;
+use crate::optics::calculate_secchi_depth; 
 
 /// System responsible for rendering the simulation control panel.
 /// It allows real-time manipulation of physical and optical ocean parameters.
@@ -33,7 +34,14 @@ pub fn update_ui_system(
 
             // Directly influences the Beer-Lambert attenuation coefficient
             ui.add(egui::Slider::new(&mut settings.turbidity, 0.0..=0.2)
-                .text("Water Turbidity (Absorption)"));
+                .text("Water Turbidity (m⁻¹)"));
+
+            // Dynamic scientific feedback: Display Secchi Depth based on turbidity
+            let visibility = calculate_secchi_depth(settings.turbidity);
+            ui.colored_label(egui::Color32::from_rgb(0, 191, 255), 
+                format!("Estimated Secchi Depth: {:.2} m", visibility));
+            
+            ui.add_space(5.0);
 
             // Thermal state affecting both density and optical refraction
             ui.add(egui::Slider::new(&mut settings.temperature, 0.0..=40.0)
