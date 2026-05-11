@@ -1,45 +1,67 @@
 use bevy::prelude::*;
 
-// --- Static Physical Constants  ---
+// --- Static Physical Constants (Reference Standards) ---
 
-/// Base refractive index for pure water (Reference)
+/// Refractive Index (IOR) of pure water at 20°C.
+/// Used as the baseline for dynamic salinity/temperature corrections.
 pub const WATER_REFRACTIVE_INDEX: f64 = 1.333; 
 
-/// Standard sea-level atmospheric pressure in hPa
+/// Standard atmospheric pressure (hPa). 
+/// Essential for future implementations of surface wave-air interface physics.
 pub const SEA_LEVEL_PRESSURE: f64 = 1013.25;
 
-// --- Dynamic Ocean Settings (Can be changed via UI) ---
+// --- Simulation Presets & Enums ---
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OceanType {
+    /// Characterized by higher particulate matter and specific spectral absorption.
+    Aegean,
+    /// High clarity, low turbidity, favoring shorter (blue) wavelengths.
+    Caribbean,
+}
+
+// --- Dynamic Simulation State ---
 
 #[derive(Resource, Debug, Clone)]
 pub struct OceanSettings {
-    /// Vertical scale of the waves (meters)
+    /// Selected geographical preset affecting spectral attenuation (Beer-Lambert).
+    pub ocean_type: OceanType,
+
+    /// Vertical wave displacement (m). Impacts IR and Visible silhouette distortion.
     pub wave_amplitude: f32,
     
-    /// Speed of the vessel through the water (m/s)
-    pub vessel_speed: f32,
+    /// Temporal frequency of wave oscillation (Hz).
+    pub wave_frequency: f32,
     
-    /// Water clarity factor based on Beer-Lambert law (0.0 = clear, higher = murky)
+    /// Global turbidity coefficient (m^-1). 
+    /// Direct multiplier for multispectral light extinction.
     pub turbidity: f32,
     
-    /// Ocean salinity in PSU (Affects optical density)
+    /// Salinity in Practical Salinity Units (PSU). 
+    /// Influences the calculated refractive index (IOR).
     pub salinity: f32,
     
-    /// Water temperature in Celsius
+    /// Surface water temperature (°C). 
+    /// Affects both optical density and thermodynamic sensor modeling.
     pub temperature: f32,
     
-    /// Speed of wave propagation
-    pub wave_frequency: f32,
+    /// Real-time vessel velocity (m/s). 
+    /// Used for dynamic wake generation and optical flow calculations.
+    pub vessel_speed: f32,
 }
 
 impl Default for OceanSettings {
+    /// Default state initialized to Mediterranean/Aegean standards 
+    /// to provide a balanced baseline for optical attenuation testing.
     fn default() -> Self {
         Self {
-            wave_amplitude: 0.8,    // Default starting value
-            vessel_speed: 4.5,     // Default starting value
-            turbidity: 0.05,       // Subtle light attenuation
-            salinity: 35.0,        // Standard ocean salinity
-            temperature: 20.0,     // Average surface temperature
-            wave_frequency: 1.2,   // Natural wave rhythm
+            ocean_type: OceanType::Aegean,
+            wave_amplitude: 0.6,    // Optimized for procedural Gerstner stability
+            wave_frequency: 1.0,    
+            turbidity: 0.08,        // Typical Aegean particulate density
+            salinity: 38.5,         // Specific salinity for the Mediterranean basin
+            temperature: 18.0,      
+            vessel_speed: 0.0,      // Initialization state
         }
     }
 }

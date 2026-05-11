@@ -9,15 +9,15 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 
   The Current Prototype Demonstrates:
 
-Interactive Physics: Real-time manipulation of sea states and vessel dynamics via an integrated GUI.
+Procedural Foundation: Moved from static textures to a WGSL-based procedural wave model. The core mathematics for wave interference is now functional on the GPU, though visual refinement (Gerstner tuning) is ongoing.
 
-Optical Fidelity: Physical modeling of light behavior underwater using the Beer-Lambert Law and Snell’s Law.
+Physics-UI Integration: Real-time synchronization between GUI parameters (Amplitude/Frequency) and the ocean surface is active.
 
-ECS Architecture: High-performance, data-driven framework built with Rust for maximum memory safety and parallel execution.
+Optical Modeling: Light attenuation is calculated using the Beer-Lambert Law, providing a physical basis for water color transitions.
 
-Atmospheric Realism: Volumetric fog and PBR-based water surfaces that simulate realistic maritime conditions.
+Environmental Blending: Atmospheric fog has been integrated to manage horizon rendering and visibility range.
 
-This is an early multispectral digital twin prototype. While the core physics (Beer-Lambert, Snell's Law) are fully functional, you might encounter minor flickering and tiling seams. These are priority items on the roadmap, and I am actively working on moving the optical calculations entirely to WGSL shaders for flawless performance and visual stability.
+My current focus is on fine-tuning the vertex displacement for more natural wave shapes and perfecting the vessel's buoyancy response (staying flush with the wave surface).
 
 
 ## Technical Framework & Implementation
@@ -64,29 +64,25 @@ Stage: Active Technical Prototype / Real-Time Simulation Framework
 
 Completed:
 
-[x] Multispectral Optical Modeling: Replaced basic color shifting with a physics-based Beer-Lambert Law implementation. Light attenuation is now calculated per spectral channel (R, G, B), accurately simulating the rapid absorption of red wavelengths compared to blue, resulting in realistic depth-dependent cyan/blue color shifts.
+[x] Procedural Wave Synthesis (WGSL): Migrated from static tiling textures to a dynamic, GPU-calculated wave interference model. Using WGSL shaders, the ocean surface now generates non-repeating, procedural ripples based on multi-layered sine/cosine interference, eliminating visual repetition artifacts.
 
-[x] Dynamic Visibility Metrics: Integrated real-time calculation of Secchi Depth (transparency limit) based on the turbidity coefficient. The UI provides live scientific feedback on underwater visibility distances.
+[x] Multispectral Optical Modeling: Replaced basic color shifting with a physics-based Beer-Lambert Law implementation. Light attenuation is calculated per spectral channel (R, G, B), accurately simulating the rapid absorption of red wavelengths to produce realistic depth-dependent cyan/blue shifts.
 
-[x] Temporal Smoothing (LERP): Implemented Linear Interpolation for optical transitions. Sudden changes in turbidity or light intensity are smoothed over time to prevent visual flickering and ensure a stable, high-fidelity simulation experience.
-
-[x] Adaptive Alpha-Modulation: Underwater opacity and fog density are dynamically coupled with absorption variables, creating a volumetric "murkiness" effect that reflects environmental changes.
+[x] Dynamic Visibility & Secchi Depth: Integrated real-time calculation of underwater transparency limits based on the turbidity coefficient. The UI provides live scientific feedback on visual range, synchronized with atmospheric fog density.
 
 
 In progress:
 
-[ ] Currently optimizing the optical engine to eliminate sudden brightness spikes during real-time turbidity shifts.
+[ ] Temporal Smoothing (LERP): Implementing Linear Interpolation for all UI-driven transitions (Turbidity, Amplitude, Frequency). The goal is to eliminate sudden visual jumps and ensure smooth, cinematic environmental shifts.
 
-[ ] Implementing sub-pixel precision for plane tiling to remove visual seams during high-speed USV navigation.
+[ ] 6-DOF Buoyancy Physics: Developing the real-time link between the procedural wave height and the USV's Transform. This will allow the vessel to physically pitch, roll, and heave according to the simulated sea state.
 
-[ ] Environment-Driven Response: Developing reactive logic based on simulated sea states.
+[ ] Optical Engine Optimization: Fine-tuning the WGSL fragment shader to normalize brightness spikes during high-turbidity shifts, ensuring consistent exposure across different sea conditions.
 
-[ ] Sensor Simulation Layer: Initial work on ray-casting based LiDAR/Sonar placeholders.
+[ ] Sensor Simulation Layer (LiDAR/Sonar): Initial R&D on ray-casting logic within the Bevy ECS to simulate basic distance sensors for autonomous navigation testing.
 
 
 Planned:
-
-[ ] Multispectral Modeling: Modeling surface materials for different wavelength responses.
 
 [ ] Infrared & Thermal Response: Simulating thermal signatures and IR sensor feedback.
 
