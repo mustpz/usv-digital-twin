@@ -23,11 +23,13 @@ My current focus is on fine-tuning the vertex displacement for more natural wave
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
 
-Rust: Chosen for its memory safety and high-performance computational efficiency, ensuring the simulation is robust and ready for safety-critical applications.
+Core Engine: Rust  – Leveraging memory safety and zero-cost abstractions for high-performance simulation logic.
 
-Bevy Engine: Utilized as the primary Data-Driven 3D environment, providing a high-fidelity workspace to model complex physical interactions via ECS.
+Framework: Bevy 0.13 – Utilizing a data-driven Entity Component System (ECS) for massive parallelization of maritime entities.
 
-bevy_egui: Employed for Real-time Parameter Orchestration, providing an integrated graphical interface to monitor and manipulate simulation variables on the fly.
+Shading & Physics: WGSL  – Custom WebGPU Shading Language implementations for procedural wave generation and real-time spectral light attenuation.
+
+User Interface: bevy_egui – Integrated immediate-mode GUI for real-time manipulation of optical and hydrodynamic parameters.
 
 ## Architecture 
 src/
