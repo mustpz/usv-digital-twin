@@ -7,18 +7,23 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 ## Current Demo 
 ![Current Simulation State](./demo.gif)
 
-  The Current Prototype Demonstrates:
+  The Current Prototype:
 
-Procedural Foundation: Moved from static textures to a WGSL-based procedural wave model. The core mathematics for wave interference is now functional on the GPU, though visual refinement (Gerstner tuning) is ongoing.
+ Transitioned from simple sine waves to a multi-layered Gerstner Wave model. This provides realistic "sharp" crests and horizontal vertex displacement, creating a naturally turbulent sea state.
 
-Physics-UI Integration: Real-time synchronization between GUI parameters (Amplitude/Frequency) and the ocean surface is active.
+ Implemented an adaptive foam system triggered by wave height. To eliminate visual repetition, I used a triple-overlay normal map technique with asymmetrical panning.
 
-Optical Modeling: Light attenuation is calculated using the Beer-Lambert Law, providing a physical basis for water color transitions.
+ The USV (vehicle) buoyancy is 1:1 synchronized with the GPU displacement. The vessel now realistically responds with Pitch and Roll alignment based on the wave slopes.
 
-Environmental Blending: Atmospheric fog has been integrated to manage horizon rendering and visibility range.
+ Ocean color is no longer static. It is dynamically calculated using the Beer-Lambert Law, where Turbidity acts as a physical extinction coefficient, affecting light absorption and scattering.
 
-My current focus is on fine-tuning the vertex displacement for more natural wave shapes and perfecting the vessel's buoyancy response (staying flush with the wave surface).
+ Why I Chose This Over FFT (For Now)?
 
+ Hardware Scalability: Optimized for 60+ FPS on mid-range hardware (like RTX 3050) by avoiding heavy FFT compute overhead.
+
+ Gerstner waves allow instant CPU-side physics calculations, ensuring zero lag between the visual ocean and the vehicle's movement.
+
+ This hybrid model offers total control over environmental parameters (Salinity, Turbidity, Sea State), which is essential for a Digital Twin focused on sensor testing.
 
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
@@ -32,7 +37,7 @@ Shading & Physics: WGSL  – Custom WebGPU Shading Language implementations for 
 User Interface: bevy_egui – Integrated immediate-mode GUI for real-time manipulation of optical and hydrodynamic parameters.
 
 ## Architecture 
-src/
+src
 main.rs * Application Orchestrator: Initializes the Bevy engine, registers global resources, and schedules system execution orders.
 
 ui.rs * Interaction Layer: Implements the bevy_egui control panel. It acts as the primary interface for real-time parameter manipulation of the OceanSettings resource.
@@ -66,22 +71,26 @@ Stage: Active Technical Prototype / Real-Time Simulation Framework
 
 Completed:
 
-[x] Procedural Wave Synthesis (WGSL): Migrated from static tiling textures to a dynamic, GPU-calculated wave interference model. Using WGSL shaders, the ocean surface now generates non-repeating, procedural ripples based on multi-layered sine/cosine interference, eliminating visual repetition artifacts.
+[x] Gerstner Wave Synthesis & Physics Sync: Implemented a multi-layered Gerstner displacement model with 1:1 CPU-GPU synchronization, enabling the USV to realistically align its pitch and roll with procedural wave slopes.
 
-[x] Multispectral Optical Modeling: Replaced basic color shifting with a physics-based Beer-Lambert Law implementation. Light attenuation is calculated per spectral channel (R, G, B), accurately simulating the rapid absorption of red wavelengths to produce realistic depth-dependent cyan/blue shifts.
+[x] Photonic Ocean Rendering: Integrated a physics-based Beer-Lambert light attenuation model where turbidity acts as an extinction coefficient, dynamically calculating spectral shifts and visibility ranges.
 
-[x] Dynamic Visibility & Secchi Depth: Integrated real-time calculation of underwater transparency limits based on the turbidity coefficient. The UI provides live scientific feedback on visual range, synchronized with atmospheric fog density.
+[x] Adaptive Surface Detail: Developed a procedural foam system and triple-layered normal map noise to simulate high-frequency sea surface turbulence and crest-dependent foam generation.
+
+[x] Coupled Atmospherics: Synchronized volumetric fog density with maritime turbidity levels to create a cohesive and strategically consistent environmental simulation.
 
 
 In progress:
 
-[ ] Temporal Smoothing (LERP): Implementing Linear Interpolation for all UI-driven transitions (Turbidity, Amplitude, Frequency). The goal is to eliminate sudden visual jumps and ensure smooth, cinematic environmental shifts.
+[ ] Adaptive Wake & Splash Simulation: Developing a particle-based system to simulate water displacement and spray behind the USV's hull as it navigates through high-amplitude waves.
 
-[ ] 6-DOF Buoyancy Physics: Developing the real-time link between the procedural wave height and the USV's Transform. This will allow the vessel to physically pitch, roll, and heave according to the simulated sea state.
+[ ] Sensor Fusion Layer (LiDAR/Radar): Researching ray-casting logic within the Bevy ECS to simulate autonomous navigation sensors, enabling distance detection against the procedural ocean surface.
 
-[ ] Optical Engine Optimization: Fine-tuning the WGSL fragment shader to normalize brightness spikes during high-turbidity shifts, ensuring consistent exposure across different sea conditions.
+[ ] Temporal Smoothing (LERP): Implementing linear interpolation for all UI-driven environmental shifts (Turbidity, Sea State) to ensure cinematic and fluid transition states.
 
-[ ] Sensor Simulation Layer (LiDAR/Sonar): Initial R&D on ray-casting logic within the Bevy ECS to simulate basic distance sensors for autonomous navigation testing.
+[ ] Dynamic Day/Night Cycle: Integrating a solar-tracking system to calculate time-of-day dependent light scattering and its impact on the USV's optical sensor simulation.
+
+[ ] Full Multispectral Engine: Developing a more granular wavelength-dependent absorption model (400nm to 900nm) to simulate non-visible spectrum sensors (NIR/SWIR) for advanced USV perception testing.
 
 
 Planned:

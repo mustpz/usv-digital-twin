@@ -1,73 +1,55 @@
 use bevy::prelude::*;
 use crate::constants::OceanSettings;
-use crate::environment::OceanMaterial;
 
-/// Refactored for Procedural Fidelity.
-/// Removed legacy 'Vagon Tiling' logic as procedural noise eliminates texture repetition artifacts.
+/// Responsible for Global Illumination, Solar Irradiance, and Maritime Atmospherics.
 pub fn setup_scene(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<OceanMaterial>>,
-    settings: Res<OceanSettings>,
 ) {
-    // Global Resources Setup
-    commands.insert_resource(ClearColor(Color::rgb(0.4, 0.6, 0.8)));
+    // 1. GLOBAL BACKGROUND (Horizon Alignment)
+    // Matches the skybox color with the fog to create an infinite horizon effect.
+    commands.insert_resource(ClearColor(Color::rgb(0.45, 0.65, 0.85)));
     
+    // 2. AMBIENT LIGHTING (Global Illumination)
+    // Soft blue-tinted fill light to simulate sky reflection in shadowed wave areas.
     commands.insert_resource(AmbientLight {
-        color: Color::WHITE,
-        brightness: 5.0, 
+        color: Color::rgb(0.6, 0.75, 1.0), 
+        brightness: 1000.0, 
     });
 
-    // 1. PROCEDURAL OCEAN SETUP
-    // Using a single large mesh. The WGSL shader handles infinite coordinate mapping.
-    let ocean_mesh = meshes.add(Mesh::from(Plane3d::default().mesh().size(2000.0, 2000.0)));
-
-    commands.spawn((
-        MaterialMeshBundle {
-            mesh: ocean_mesh,
-            material: materials.add(OceanMaterial {
-                turbidity: settings.turbidity,
-                wave_amplitude: settings.wave_amplitude,
-                wave_frequency: settings.wave_frequency,
-                time: 0.0,
-                deep_water_color: Color::rgb(0.01, 0.05, 0.1),
-            }),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+    // 3. SOLAR IRRADIANCE (Primary Directional Light)
+    // For generating the "specular glints" and foam highlights on wave peaks.
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: 25000.0, 
+            shadows_enabled: true, 
+            color: Color::rgb(1.0, 0.98, 0.92), 
+            shadow_depth_bias: 0.05,
+            shadow_normal_bias: 0.1,
             ..default()
         },
-        Name::new("Strategic_Ocean_Surface"),
-    ));
-
-    // 2. ATMOSPHERICS (Volumetric Fog)
-    // Blends the horizon line with the sky color to hide mesh edges.
-    commands.spawn(FogSettings {
-        color: Color::rgb(0.4, 0.6, 0.8), 
-        falloff: FogFalloff::Exponential { density: 0.005 },
+        transform: Transform::from_xyz(150.0, 300.0, 150.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 
-    // 3. SOLAR IRRADIANCE (Global Illumination)
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 150000.0,
-            shadows_enabled: false,
-            ..default()
-        },
-        transform: Transform::from_xyz(50.0, 100.0, 50.0).looking_at(Vec3::ZERO, Vec3::Y),
+    // 4. MARITIME ATMOSPHERICS (Volumetric Fog).
+    commands.spawn(FogSettings {
+        color: Color::rgb(0.55, 0.7, 0.8), 
+        falloff: FogFalloff::Exponential { density: 0.0008 },
         ..default()
     });
 }
 
-/// Dynamic Scene Update
+/// Dynamic system that links atmospheric fog density to ocean turbidity settings.
+/// Simulates how murky water often accompanies hazy meteorological conditions.
 pub fn update_scene_system(
     settings: Res<OceanSettings>,
     mut query_fog: Query<&mut FogSettings>,
 ) {
-    // Synchronizing Fog density with real-time turbidity for visibility analysis
     for mut fog in query_fog.iter_mut() {
+        // As turbidity (murkiness) increases, atmospheric visibility decreases.
         let visibility_factor = (1.0 - settings.turbidity).max(0.1);
         fog.falloff = FogFalloff::Exponential { 
-            density: 0.01 / visibility_factor 
+            density: 0.0015 / visibility_factor 
         };
     }
 }
