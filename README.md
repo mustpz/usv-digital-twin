@@ -5,7 +5,7 @@ A modular real-time digital twin framework for simulating environmental interact
 and visual signature behavior of Unmanned Surface Vehicles (USVs). This project focuses on building a real-time simulation environment to model multispectral camouflage responses under dynamic environmental conditions. Multispectral modeling is planned for future implementation and is not yet included.
 
 ## Current Demo 
-![Current Simulation State](./demo.gif)
+![Current Simulation State](./demo.png) 
 
   The Current Prototype:
 
@@ -38,6 +38,7 @@ User Interface: bevy_egui – Integrated immediate-mode GUI for real-time manipu
 
 ## Architecture 
 src
+
 main.rs * Application Orchestrator: Initializes the Bevy engine, registers global resources, and schedules system execution orders.
 
 ui.rs * Interaction Layer: Implements the bevy_egui control panel. It acts as the primary interface for real-time parameter manipulation of the OceanSettings resource.
