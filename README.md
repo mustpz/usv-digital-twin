@@ -101,6 +101,13 @@ Planned:
 [ ] Autonomous Decision Layer: Integrating classical logic and ethical decision-making frameworks for maritime navigation.
 
 
+
+Credits & Acknowledgments
+
+Water Normal Map: Derived from the Three.js core examples (water shader). This high-frequency normal map is used to enhance surface micro-turbulence and light reflection.
+
+
+
 Get in Touch
 
 I am actively developing this framework and open to technical discussions, feedback, or potential collaboration opportunities. Feel free to reach out if you have questions about the implementation:
