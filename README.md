@@ -99,3 +99,10 @@ Planned:
 [ ] Infrared & Thermal Response: Simulating thermal signatures and IR sensor feedback.
 
 [ ] Autonomous Decision Layer: Integrating classical logic and ethical decision-making frameworks for maritime navigation.
+
+
+Get in Touch
+
+I am actively developing this framework and open to technical discussions, feedback, or potential collaboration opportunities. Feel free to reach out if you have questions about the implementation:
+
+📧 Email:muserreftpz@gmail.com
