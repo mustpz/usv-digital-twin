@@ -5,9 +5,11 @@ A modular real-time digital twin framework for simulating environmental interact
 and visual signature behavior of Unmanned Surface Vehicles (USVs). This project focuses on building a real-time simulation environment to model multispectral camouflage responses under dynamic environmental conditions. Multispectral modeling is planned for future implementation and is not yet included.
 
 ## Current Demo 
-![Current Simulation State](./demo.png) 
+![Current Simulation State](./demo.gif) 
 
   The Current Prototype:
+
+Implemented a Closed-Loop Signature Management System that dynamically samples environmental optical data (Turbidity, Ocean Type) to adjust the USV's visual signature in real-time. This prototype serves as a Proof of Concept (PoC) to demonstrate the feasibility of Adaptive Camouflage in autonomous maritime platforms, bridging the gap between theoretical photonics and practical naval stealth applications.
 
  Transitioned from simple sine waves to a multi-layered Gerstner Wave model. This provides realistic "sharp" crests and horizontal vertex displacement, creating a naturally turbulent sea state.
 
@@ -24,6 +26,8 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
  Gerstner waves allow instant CPU-side physics calculations, ensuring zero lag between the visual ocean and the vehicle's movement.
 
  This hybrid model offers total control over environmental parameters (Salinity, Turbidity, Sea State), which is essential for a Digital Twin focused on sensor testing.
+
+ The goal of this module is not just visual aesthetics, but to show that autonomous systems can interpret environmental physics to make tactical survival decisions without human intervention.
 
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
@@ -72,6 +76,8 @@ Stage: Active Technical Prototype / Real-Time Simulation Framework
 
 Completed:
 
+[x] Prototyped an autonomous environmental perception layer that dynamically synchronizes the USV’s optical signature with real-time ocean turbidity and spectral data, proving the feasibility of adaptive stealth logic in maritime digital twins.
+
 [x] Gerstner Wave Synthesis & Physics Sync: Implemented a multi-layered Gerstner displacement model with 1:1 CPU-GPU synchronization, enabling the USV to realistically align its pitch and roll with procedural wave slopes.
 
 [x] Photonic Ocean Rendering: Integrated a physics-based Beer-Lambert light attenuation model where turbidity acts as an extinction coefficient, dynamically calculating spectral shifts and visibility ranges.
@@ -87,8 +93,6 @@ In progress:
 
 [ ] Sensor Fusion Layer (LiDAR/Radar): Researching ray-casting logic within the Bevy ECS to simulate autonomous navigation sensors, enabling distance detection against the procedural ocean surface.
 
-[ ] Temporal Smoothing (LERP): Implementing linear interpolation for all UI-driven environmental shifts (Turbidity, Sea State) to ensure cinematic and fluid transition states.
-
 [ ] Dynamic Day/Night Cycle: Integrating a solar-tracking system to calculate time-of-day dependent light scattering and its impact on the USV's optical sensor simulation.
 
 [ ] Full Multispectral Engine: Developing a more granular wavelength-dependent absorption model (400nm to 900nm) to simulate non-visible spectrum sensors (NIR/SWIR) for advanced USV perception testing.
@@ -102,13 +106,13 @@ Planned:
 
 
 
-Credits & Acknowledgments
+## Credits & Acknowledgments
 
 Water Normal Map: Derived from the Three.js core examples (water shader). This high-frequency normal map is used to enhance surface micro-turbulence and light reflection.
 
 
 
-Get in Touch
+## Get in Touch
 
 I am actively developing this framework and open to technical discussions, feedback, or potential collaboration opportunities. Feel free to reach out if you have questions about the implementation:
 
