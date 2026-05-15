@@ -29,6 +29,9 @@ Implemented a Closed-Loop Signature Management System that dynamically samples e
 
  The goal of this module is not just visual aesthetics, but to show that autonomous systems can interpret environmental physics to make tactical survival decisions without human intervention.
 
+ 🚧Next 2 weeks: Focus on sensor data ingestion and real-time telemetry API integration.
+ 
+
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
 
@@ -86,6 +89,7 @@ Completed:
 
 [x] Coupled Atmospherics: Synchronized volumetric fog density with maritime turbidity levels to create a cohesive and strategically consistent environmental simulation.
 
+[x] Integrated a hydrodynamics module to track laminar flow stability. The system now distinguishes between steady and turbulent flow conditions, laying the foundation for how surface disturbances affect the autonomous stealth signature of the USV.
 
 In progress:
 
