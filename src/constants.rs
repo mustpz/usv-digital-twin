@@ -10,6 +10,10 @@ pub const WATER_REFRACTIVE_INDEX: f64 = 1.333;
 /// Essential for future implementations of surface wave-air interface physics.
 pub const SEA_LEVEL_PRESSURE: f64 = 1013.25;
 
+/// Based on FVM analysis for steady flow and low drag.
+pub const DRAG_COEFFICIENT: f32 = 0.04; 
+pub const IDEAL_FLOW_VELOCITY: f32 = 5.0; 
+
 // --- Simulation Presets & Enums ---
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

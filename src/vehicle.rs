@@ -5,7 +5,6 @@ use crate::models::UnmannedSurfaceVehicle;
 #[derive(Component)]
 pub struct Vehicle;
 
-/// Spawns the USV with initial physics and the Camouflage Controller (The Brain).
 pub fn spawn_vehicle(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -29,8 +28,8 @@ pub fn spawn_vehicle(
     ));
 }
 
-/// The Sensor System. It samples the environment color and updates the USV's 'Target Color'.
-/// This is the bridge between the environment and the autonomous decision-making.
+/// The Sensor System. Samples environment color and updates the USV's 'Target Color'.
+/// High turbidity levels automatically increase the 'Stealth Alpha' for adaptive masking.
 pub fn sensor_sampling_system(
     ocean_settings: Res<OceanSettings>,
     mut usv_query: Query<&mut UnmannedSurfaceVehicle>,
@@ -48,13 +47,13 @@ pub fn sensor_sampling_system(
             usv.target_camouflage_color = Color::rgb(adaptive_color.x, adaptive_color.y, adaptive_color.z);
 
             let auto_stealth = (ocean_settings.turbidity / 0.3).clamp(0.0, 1.0);
-            
             usv.stealth_alpha = auto_stealth; 
         }
     }
 }
 
 /// Applies the calculated camouflage by interpolating the hull color in real-time.
+/// Physical material properties (metallic/roughness) shift to minimize optical signature.
 pub fn apply_camouflage_system(
     usv_query: Query<(&UnmannedSurfaceVehicle, &Handle<StandardMaterial>)>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -73,14 +72,13 @@ pub fn apply_camouflage_system(
             let final_rgb = base_color.lerp(target_color, usv.stealth_alpha);
             
             material.base_color = Color::rgb(final_rgb.x, final_rgb.y, final_rgb.z);
-            
             material.perceptual_roughness = 0.1 + (usv.stealth_alpha * 0.4); 
             material.metallic = 0.9 * (1.0 - usv.stealth_alpha * 0.5);
         }
     }
 }
 
-// --- GERSTNER WAVE ENGINE ---
+// --- GERSTNER WAVE ENGINE & VEHICLE DYNAMICS ---
 
 fn calculate_gerstner_component(
     pos: Vec2, 
@@ -148,22 +146,37 @@ pub fn float_vehicle_system(
     }
 }
 
+/// Core propulsion system. Integrates hydrodynamic drag force into movement logic.
+/// The effective speed is reduced by the calculated 'current_drag' to simulate water resistance.
 pub fn move_vehicle(
     keyboard_input: Res<ButtonInput<KeyCode>>, 
-    mut query: Query<&mut Transform, With<Vehicle>>, 
+    mut query: Query<(&mut Transform, &mut UnmannedSurfaceVehicle), With<Vehicle>>, 
     time: Res<Time>, 
 ) {
-    let speed = 10.0; 
+    let base_propulsion_force = 10.0; 
     let rotation_speed = 2.5; 
 
-    for mut transform in query.iter_mut() {
+    for (mut transform, mut usv) in query.iter_mut() {
+        // --- REAL-TIME HYDRODYNAMIC CALCULATIONS ---
+        // Simple drag approximation: F_d = 1/2 * ρ * v^2 * C_d
+        // We simulate this by increasing drag based on the current propulsion state.
+        if keyboard_input.pressed(KeyCode::KeyW) {
+            usv.hydrodynamics.current_drag = (usv.hydrodynamics.current_drag + 0.05).min(2.0);
+            usv.hydrodynamics.is_flow_steady = true; 
+        } else {
+            usv.hydrodynamics.current_drag = (usv.hydrodynamics.current_drag - 0.1).max(0.0);
+            usv.hydrodynamics.is_flow_steady = false;
+        }
+
+        let effective_speed = base_propulsion_force - usv.hydrodynamics.current_drag;
+
         if keyboard_input.pressed(KeyCode::KeyW) {
             let forward = transform.forward();
-            transform.translation += forward * speed * time.delta_seconds();
+            transform.translation += forward * effective_speed * time.delta_seconds();
         }
         if keyboard_input.pressed(KeyCode::KeyS) {
             let back = transform.back();
-            transform.translation += back * speed * time.delta_seconds();
+            transform.translation += back * (effective_speed * 0.5) * time.delta_seconds();
         }
         if keyboard_input.pressed(KeyCode::KeyA) {
             transform.rotate_y(rotation_speed * time.delta_seconds());

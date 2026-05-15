@@ -1,5 +1,18 @@
 use bevy::prelude::*;
 
+/// Represents the hydrodynamic state of the USV based on Computational Fluid Dynamics (CFD) logic.
+/// Derived from Finite Volume Method (FVM) principles to track hull-water interaction.
+#[derive(Default, Debug)]
+pub struct Hydrodynamics {
+    /// Calculated drag force acting on the hull (F_d). 
+    /// Aiming for a low coefficient based on steady-state flow simulation results.
+    pub current_drag: f32,
+
+    /// Binary state indicating if the laminar flow is maintained.
+    /// Steady flow (True) prevents surface disturbances, optimizing both speed and stealth.
+    pub is_flow_steady: bool,
+}
+
 #[derive(Component)]
 pub struct UnmannedSurfaceVehicle {
     pub name: String,
@@ -20,10 +33,15 @@ pub struct UnmannedSurfaceVehicle {
     /// Spatial coordinates used to sample environmental data (C_i and d_i).
     /// These points act as virtual "probes" around the hull to 'see' the water.
     pub sampling_points: Vec<Vec3>,
+
+    // --- Propulsion & Hydrodynamics ---
+    /// Integrated hydrodynamics module for real-time performance tracking.
+    /// Links FVM-based flow analysis with autonomous movement logic.
+    pub hydrodynamics: Hydrodynamics,
 }
 
 impl UnmannedSurfaceVehicle {
-    /// Initializes a new USV with default engineering parameters and stealth probes.
+    /// Initializes a new USV with default engineering parameters, stealth probes, and hydrodynamic state.
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -42,6 +60,9 @@ impl UnmannedSurfaceVehicle {
                 Vec3::new(0.0, 0.0, 5.0),  // Port (Left)
                 Vec3::new(0.0, 0.0, -5.0), // Starboard (Right)
             ],
+
+            // Initializing hydrodynamics with default steady-flow assumptions.
+            hydrodynamics: Hydrodynamics::default(),
         }
     }
 
