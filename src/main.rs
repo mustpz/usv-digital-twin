@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin; 
+use telemetry::VehicleTelemetry;
 
 mod constants;
 mod environment;
