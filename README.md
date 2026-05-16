@@ -62,6 +62,8 @@ environment.rs * Atmospheric Modeling: Handles broader environmental states and 
 
 models.rs * Hardware Abstraction: Future module reserved for multispectral sensor models and advanced camera optics.
 
+telemetry.rs * Design and initialization of an asynchronous data pipeline to handle real-time vehicle diagnostics and optical sensor telemetry. Encapsulates critical kinematic and environmental data streams, including depth parameters and velocity matrices. Prepares the data layer for asynchronous transmission to remote telemetry dashboards or control hubs.
+
 
 ## Theoretical Foundation & References
 The core algorithms and optical models within this digital twin are grounded in rigorous electro-optical engineering principles. Key references used for system analysis, sensor modeling, and testing include:
