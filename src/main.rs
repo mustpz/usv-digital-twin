@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin; 
-use telemetry::VehicleTelemetry;
 
 mod constants;
 mod environment;
@@ -9,7 +8,7 @@ mod scene;
 mod models;
 mod optics;
 mod ui; 
-mod telemetry;
+mod telemetry; 
 
 use environment::{setup_ocean_environment, sync_ocean_material, OceanMaterial};
 use vehicle::{

@@ -9,3 +9,9 @@ bevy = { version = "0.13", features = ["png", "jpeg", "bevy_pbr"] }
 
 # UI Library for the control panel (Version 0.25 is compatible with Bevy 0.13)
 bevy_egui = "0.25"
+
+
+tokio = { version = "1", features = ["full"] } 
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

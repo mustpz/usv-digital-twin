@@ -1,17 +1,17 @@
-pub struct VehicleTelemetry {
+use serde::Serialize;
+
+#[derive(Serialize, Debug, Clone)]
+pub struct IdaTelemetryData {
+    pub depth: f32,
+    pub speed: f32,
     pub timestamp: u64,
-    pub velocity_knots: f32,
-    pub depth_meters: f32,
-    pub light_transmission_ratio: f32, 
 }
 
-impl VehicleTelemetry {
-    pub fn new() -> Self {
-        Self {
-            timestamp: 0,
-            velocity_knots: 0.0,
-            depth_meters: 0.0,
-            light_transmission_ratio: 1.0,
-        }
-    }
+pub async fn send_telemetry_packet(data: &IdaTelemetryData) -> Result<String, serde_json::Error> {
+   
+    let json_payload = serde_json::to_string(data)?;
+    
+    println!("📦 [Telemetry Stream] JSON Payload Ready: {}", json_payload);
+    
+    Ok(json_payload)
 }
