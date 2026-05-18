@@ -35,11 +35,15 @@ Implemented a Closed-Loop Signature Management System that dynamically samples e
 ## Technical Framework & Implementation
 To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
 
-Core Engine: Rust  – Leveraging memory safety and zero-cost abstractions for high-performance simulation logic.
+Core Engine: Rust – Leveraging memory safety and zero-cost abstractions for high-performance simulation logic.
 
 Framework: Bevy 0.13 – Utilizing a data-driven Entity Component System (ECS) for massive parallelization of maritime entities.
 
-Shading & Physics: WGSL  – Custom WebGPU Shading Language implementations for procedural wave generation and real-time spectral light attenuation.
+Asynchronous Engine: Tokio – Driving the non-blocking, multi-threaded asynchronous runtime for high-throughput sensor telemetry streams.
+
+Serialization & Networking: Serde & JSON – Enabling robust, low-overhead data serialization for edge-computing and remote monitoring interfaces.
+
+Shading & Physics: WGSL – Custom WebGPU Shading Language implementations for procedural wave generation and real-time spectral light attenuation.
 
 User Interface: bevy_egui – Integrated immediate-mode GUI for real-time manipulation of optical and hydrodynamic parameters.
 
