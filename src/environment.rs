@@ -40,10 +40,10 @@ pub fn setup_ocean_environment(
        Increasing subdivisions from default to 400 for structural fidelity.
     */
     let ocean_mesh = meshes.add(
-    Mesh::from(bevy::prelude::shape::Plane {
-        size: 2000.0,
-        subdivisions: 400,
-    })
+   Mesh::from(bevy::prelude::shape::Plane {
+    size: 2000.0,
+    subdivisions: 400,
+})
 );
    
     let water_normal_handle = asset_server.load("textures/water_normal.png");
