@@ -35,3 +35,23 @@ pub async fn send_telemetry_packet(
     // Return the successfully generated JSON payload back to the system layer if needed
     Ok(json_payload)
 }
+
+// Asynchronously fetches real-time environment variables or external control override packets.
+/// Utilizes a non-blocking GET request, protecting the siber-physical loop from network latency spikes.
+pub async fn fetch_telemetry_data(
+    client: &Client, 
+    url: &str
+) -> Result<String, reqwest::Error> {
+    
+    println!("📡 [Telemetry Ingress] Fetching real-time environment matrix from: {}", url);
+    
+    // Non-blocking HTTP GET request to capture the physical/virtual world updates
+    let response = client.get(url)
+        .send()
+        .await?;
+        
+    // Ensure we parse the response body as text asynchronously without blocking the core executor
+    let body_content = response.text().await?;
+    
+    Ok(body_content)
+}
