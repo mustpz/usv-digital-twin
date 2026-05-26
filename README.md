@@ -7,45 +7,44 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 ## Current Demo 
 ![Current Simulation State](./demo.gif) 
 
-  The Current Prototype:
+ ### The Current Prototype: Core Implementation
 
-Implemented a Closed-Loop Signature Management System that dynamically samples environmental optical data (Turbidity, Ocean Type) to adjust the USV's visual signature in real-time. This prototype serves as a Proof of Concept (PoC) to demonstrate the feasibility of Adaptive Camouflage in autonomous maritime platforms, bridging the gap between theoretical photonics and practical naval stealth applications.
+* **Adaptive Signature Management:** A Closed-Loop system that samples turbidity and spectral data to adjust the USV's optical signature in real-time—bridging theoretical photonics with practical naval stealth applications.
+* **Gerstner Wave Synthesis:** Multi-layered displacement model producing realistic "sharp" crests and horizontal vertex displacement for a naturally turbulent sea state.
+* **Non-Repetitive Foam Dynamics:** Adaptive foam generation triggered by wave height, utilizing a triple-overlay normal map technique with asymmetrical panning to eliminate visual repetition.
+* **1:1 Physics Synchronization:** Vessel buoyancy is fully coupled with GPU displacement, enabling realistic Pitch and Roll responses based on dynamic wave slopes.
+* **Physics-Based Rendering:** Ocean color is dynamically computed via the Beer-Lambert Law, using turbidity as a physical extinction coefficient for light absorption and scattering.
 
- Transitioned from simple sine waves to a multi-layered Gerstner Wave model. This provides realistic "sharp" crests and horizontal vertex displacement, creating a naturally turbulent sea state.
 
- Implemented an adaptive foam system triggered by wave height. To eliminate visual repetition, I used a triple-overlay normal map technique with asymmetrical panning.
+### Architectural Choice: Why Gerstner Waves Over FFT?
 
- The USV (vehicle) buoyancy is 1:1 synchronized with the GPU displacement. The vessel now realistically responds with Pitch and Roll alignment based on the wave slopes.
+* **Hardware Scalability:** Avoids heavy FFT compute overhead, maintaining **60+ FPS on mid-range hardware (e.g., RTX 3050)**.
+* **Zero-Lag Buoyancy:** Allows instant CPU-side physics sampling, ensuring perfect synchronization between visual wave geometry and vessel kinematics.
+* **Deterministic Parameter Control:** Provides total control over environmental vectors (Salinity, Turbidity, Sea State) essential for sensor-testing Digital Twins.
 
- Ocean color is no longer static. It is dynamically calculated using the Beer-Lambert Law, where Turbidity acts as a physical extinction coefficient, affecting light absorption and scattering.
+> 🎯 **Core Objective:** To prove that autonomous maritime platforms can interpret environmental physics to execute tactical survival decisions independently.
 
- Why I Chose This Over FFT (For Now)?
 
- Hardware Scalability: Optimized for 60+ FPS on mid-range hardware (like RTX 3050) by avoiding heavy FFT compute overhead.
-
- Gerstner waves allow instant CPU-side physics calculations, ensuring zero lag between the visual ocean and the vehicle's movement.
-
- This hybrid model offers total control over environmental parameters (Salinity, Turbidity, Sea State), which is essential for a Digital Twin focused on sensor testing.
-
- The goal of this module is not just visual aesthetics, but to show that autonomous systems can interpret environmental physics to make tactical survival decisions without human intervention.
-
- 🚧Next 2 weeks: Focus on sensor data ingestion and real-time telemetry API integration.
+### 🚧 Next Phase
+- [x] **Asynchronous Bidirectional Telemetry Pipeline & Closed-Loop API Integration** (Completed)
+- [ ] **Bio-mimicry Adaptive Escape Dynamics** 
+- [ ] **Real-Time Multi-Spectral Camouflage Response Subsystems**
  
 
-## Technical Framework & Implementation
-To ensure maximum reliability and real-time performance, the project is architected with the following technologies:
+## ## Technical Framework & Core Stack
 
-Core Engine: Rust – Leveraging memory safety and zero-cost abstractions for high-performance simulation logic.
+| Component | Technology | Architectural Role & Implementation |
+| :--- | :--- | :--- |
+| **Core Engine** | Rust | Memory safety, zero-cost abstractions, data-driven simulation logic. |
+| **Framework** | Bevy 0.13 | Entity Component System (ECS) driving massive entity parallelization. |
+| **Networking** | Reqwest & Tokio | Non-blocking Async I/O runtime for continuous telemetry ingress/egress. |
+| **Serialization** | Serde & JSON | Low-overhead data serialization for edge-computing telemetry packets. |
+| **Shading & Physics**| WGSL | Custom WebGPU shaders for procedural waves and Beer-Lambert attenuation. |
+| **User Interface** | bevy_egui | Immediate-mode GUI for real-time optical and hydrodynamic manipulation. |
 
-Framework: Bevy 0.13 – Utilizing a data-driven Entity Component System (ECS) for massive parallelization of maritime entities.
-
-Asynchronous Engine: Tokio – Driving the non-blocking, multi-threaded asynchronous runtime for high-throughput sensor telemetry streams.
-
-Serialization & Networking: Serde & JSON – Enabling robust, low-overhead data serialization for edge-computing and remote monitoring interfaces.
-
-Shading & Physics: WGSL – Custom WebGPU Shading Language implementations for procedural wave generation and real-time spectral light attenuation.
-
-User Interface: bevy_egui – Integrated immediate-mode GUI for real-time manipulation of optical and hydrodynamic parameters.
+### 🛠️ Architecture Highlights
+* **Closed-Loop Isolation:** Designed entirely for local edge-computing. Zero dependency on non-deterministic external cloud APIs, ensuring maximum tactical data security.
+* **Zero-Blocking Architecture:** Network operations run fully asynchronous via dedicated connection pools, guarantees 0% frame drops across the core Bevy simulation loop.
 
 ## Architecture 
 src
@@ -80,39 +79,56 @@ The core algorithms and optical models within this digital twin are grounded in 
 
 These references guide the future of implementation of sensor and optical response models.
 
-## Project Status
-Stage: Active Technical Prototype / Real-Time Simulation Framework
+## ## Project Status
+**Stage:** Active Technical Prototype / Real-Time Simulation Framework
 
-Completed:
+### 🏆 Completed 
 
-[x] Prototyped an autonomous environmental perception layer that dynamically synchronizes the USV’s optical signature with real-time ocean turbidity and spectral data, proving the feasibility of adaptive stealth logic in maritime digital twins.
+- [x] Asynchronous Telemetry Pipeline & Network Architecture Integration
+  - Implemented a non-blocking I/O network framework using reqwest and serde. Core data structures (UsvTelemetryData) and async ingress/egress functions are fully compiled, setting up the foundation for upcoming real-time data streaming and bio-mimicry processing.
 
-[x] Gerstner Wave Synthesis & Physics Sync: Implemented a multi-layered Gerstner displacement model with 1:1 CPU-GPU synchronization, enabling the USV to realistically align its pitch and roll with procedural wave slopes.
+- [x] **Autonomous Environmental Perception Layer**
+  - Prototyped an autonomous perception matrix that dynamically synchronizes the USV’s optical signature with real-time ocean turbidity and spectral data, proving the feasibility of adaptive stealth logic in maritime digital twins.
 
-[x] Photonic Ocean Rendering: Integrated a physics-based Beer-Lambert light attenuation model where turbidity acts as an extinction coefficient, dynamically calculating spectral shifts and visibility ranges.
+- [x] **Gerstner Wave Synthesis & Physics Sync**
+  - Implemented a multi-layered Gerstner displacement model with 1:1 CPU-GPU synchronization, enabling the USV to realistically align its pitch and roll with procedural wave slopes.
 
-[x] Adaptive Surface Detail: Developed a procedural foam system and triple-layered normal map noise to simulate high-frequency sea surface turbulence and crest-dependent foam generation.
+- [x] **Photonic Ocean Rendering (Beer-Lambert Law)**
+  - Integrated a physics-based Beer-Lambert light attenuation model where turbidity acts as an extinction coefficient, dynamically calculating spectral shifts and visibility ranges.
 
-[x] Coupled Atmospherics: Synchronized volumetric fog density with maritime turbidity levels to create a cohesive and strategically consistent environmental simulation.
+- [x] **Adaptive Surface Detail & Foam Dynamics**
+  - Developed a procedural foam system and triple-layered normal map noise to simulate high-frequency sea surface turbulence and crest-dependent foam generation.
 
-[x] Integrated a hydrodynamics module to track laminar flow stability. The system now distinguishes between steady and turbulent flow conditions, laying the foundation for how surface disturbances affect the autonomous stealth signature of the USV.
+- [x] **Coupled Atmospherics**
+  - Synchronized volumetric fog density with maritime turbidity levels to create a cohesive and strategically consistent environmental simulation.
 
-In progress:
+- [x] **Hydrodynamics Module & Laminar Flow Analysis**
+  - Integrated a hydrodynamics layer to track laminar flow stability. The system distinguishes between steady and turbulent flow conditions, laying the analytical foundation for how surface disturbances affect the autonomous stealth signature of the USV.
 
-[ ] Adaptive Wake & Splash Simulation: Developing a particle-based system to simulate water displacement and spray behind the USV's hull as it navigates through high-amplitude waves.
+### 🚧 In Progress
 
-[ ] Sensor Fusion Layer (LiDAR/Radar): Researching ray-casting logic within the Bevy ECS to simulate autonomous navigation sensors, enabling distance detection against the procedural ocean surface.
+- [ ] **Bio-Inspired Adaptive Escape Dynamics**
+  - *Current Focus:* Integrating a reactive threat/evasion matrix based on autonomous octopus flight patterns. This layer will consume the newly integrated real-time async telemetry data to trigger localized micro-maneuvers.
 
-[ ] Dynamic Day/Night Cycle: Integrating a solar-tracking system to calculate time-of-day dependent light scattering and its impact on the USV's optical sensor simulation.
+- [ ] **Full Multispectral Camouflage & Perception Engine**
+  - *Current Focus:* Refining a granular wavelength-dependent absorption and reflection model. This will simulate active Non-Line-of-Sight (NLOS) and Near-Infrared (NIR/SWIR) signatures for advanced USV stealth testing against multi-band radar/optical sensors.
 
-[ ] Full Multispectral Engine: Developing a more granular wavelength-dependent absorption model (400nm to 900nm) to simulate non-visible spectrum sensors (NIR/SWIR) for advanced USV perception testing.
+- [ ] **Adaptive Wake & Splash Simulation (Bevy Particle System)**
+  - *Current Focus:* Developing a high-performance particle-based system within Bevy ECS to compute water displacement, hull friction, and spray diagnostics behind the USV as it traverses procedural high-amplitude waves.
 
+- [ ] **Sensor Fusion Layer (Ray-Casting LiDAR/Radar)**
+  - *Current Focus:* Implementing parallelized ray-casting logic within the Bevy ECS architecture to simulate physical autonomous navigation sensors, enabling true distance detection and spatial awareness against dynamic wave surfaces.
 
-Planned:
+- [ ] **Dynamic Day/Night Solar Tracking**
+  - *Current Focus:* Integrating an automated solar-tracking matrix to calculate time-of-day dependent atmospheric light scattering and its direct degradation vectors on the USV’s optical sensor suite.
 
-[ ] Infrared & Thermal Response: Simulating thermal signatures and IR sensor feedback.
+### 🎯 Long-Term Planned Objectives
 
-[ ] Autonomous Decision Layer: Integrating classical logic and ethical decision-making frameworks for maritime navigation.
+- [ ] **Infrared (IR) & Active Thermal Signature Simulation**
+  - *Objective:* Simulating thermodynamic dissipation profiles across the USV's hull. Integrating high-fidelity Long-Wave Infrared (LWIR) and Mid-Wave Infrared (MWIR) sensor feedback loops to test advanced multi-spectral camouflage efficacy against airborne thermal surveillance assets.
+
+- [ ] **Deterministic Autonomous Decision-Making & Rules-of-the-Road (COLREGs) Layer**
+  - *Objective:* Integrating a fully deterministic, low-latency classical logic framework combined with International Regulations for Preventing Collisions at Sea (COLREGs). This layer will govern ethical maritime navigation constraints and autonomous threat-avoidance priorites without relying on non-deterministic cloud APIs.
 
 
 
