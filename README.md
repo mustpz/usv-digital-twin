@@ -84,7 +84,7 @@ These references guide the future of implementation of sensor and optical respon
 
 ### 🏆 Completed 
 
-- [x] Asynchronous Telemetry Pipeline & Network Architecture Integration
+- [x] **Asynchronous Telemetry Pipeline & Network Architecture Integration**
   - Implemented a non-blocking I/O network framework using reqwest and serde. Core data structures (UsvTelemetryData) and async ingress/egress functions are fully compiled, setting up the foundation for upcoming real-time data streaming and bio-mimicry processing.
 
 - [x] **Autonomous Environmental Perception Layer**
@@ -103,21 +103,21 @@ These references guide the future of implementation of sensor and optical respon
   - Synchronized volumetric fog density with maritime turbidity levels to create a cohesive and strategically consistent environmental simulation.
 
 - [x] **Hydrodynamics Module & Laminar Flow Analysis**
-  - Integrated a hydrodynamics layer to track laminar flow stability. The system distinguishes between steady and turbulent flow conditions, laying the analytical foundation for how surface disturbances affect the autonomous stealth signature of the USV.
+  - Integrated a hydrodynamics layer to track laminar flow stability. The system distinguishes between laminar and turbulent flow regimes, laying the analytical foundation for how surface disturbances affect the autonomous stealth signature of the USV.
 
 ### 🚧 In Progress
 
 - [ ] **Bio-Inspired Adaptive Escape Dynamics**
-  - *Current Focus:* Integrating a reactive threat/evasion matrix based on autonomous octopus flight patterns. This layer will consume the newly integrated real-time async telemetry data to trigger localized micro-maneuvers.
+  - *Current Focus:* Integrating a reactive threat/evasion matrix based on autonomous octopus-inspired evasion patterns. This layer will consume the newly integrated real-time async telemetry data to trigger localized micro-maneuvers.
 
 - [ ] **Full Multispectral Camouflage & Perception Engine**
   - *Current Focus:* Refining a granular wavelength-dependent absorption and reflection model. This will simulate active Non-Line-of-Sight (NLOS) and Near-Infrared (NIR/SWIR) signatures for advanced USV stealth testing against multi-band radar/optical sensors.
 
 - [ ] **Adaptive Wake & Splash Simulation (Bevy Particle System)**
-  - *Current Focus:* Developing a high-performance particle-based system within Bevy ECS to compute water displacement, hull friction, and spray diagnostics behind the USV as it traverses procedural high-amplitude waves.
+  - *Current Focus:* Developing a high-performance particle-based systemwithin Bevy ECS to render visual water displacement effects, hull friction trails, and spray diagnostics behind the USV as it traverses procedural high-amplitude waves.
 
 - [ ] **Sensor Fusion Layer (Ray-Casting LiDAR/Radar)**
-  - *Current Focus:* Implementing parallelized ray-casting logic within the Bevy ECS architecture to simulate physical autonomous navigation sensors, enabling true distance detection and spatial awareness against dynamic wave surfaces.
+  - *Current Focus:* Implementing parallelized ray-casting and wave-scattering algorithms within the Bevy ECS architecture to simulate physical autonomous navigation sensors, enabling true distance detection and spatial awareness against dynamic wave surfaces.
 
 - [ ] **Dynamic Day/Night Solar Tracking**
   - *Current Focus:* Integrating an automated solar-tracking matrix to calculate time-of-day dependent atmospheric light scattering and its direct degradation vectors on the USV’s optical sensor suite.
