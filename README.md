@@ -67,6 +67,8 @@ models.rs * Hardware Abstraction: Future module reserved for multispectral senso
 
 telemetry.rs * Design and initialization of an asynchronous data pipeline to handle real-time vehicle diagnostics and optical sensor telemetry. Encapsulates critical kinematic and environmental data streams, including depth parameters and velocity matrices. Prepares the data layer for asynchronous transmission to remote telemetry dashboards or control hubs.
 
+biomimicry.rs * Implements a deterministic, low-latency state machine inspired by cephalopod mechanics to execute tactical autonomous evasion maneuvers. This layer consumes real-time async telemetry data to dynamically adapt hull kinematics and multispectral signatures against incoming hostile threat vectors.
+
 
 ## Theoretical Foundation & References
 The core algorithms and optical models within this digital twin are grounded in rigorous electro-optical engineering principles. Key references used for system analysis, sensor modeling, and testing include:
@@ -76,6 +78,7 @@ The core algorithms and optical models within this digital twin are grounded in 
 * **Sherman Karp** – *Fundamentals of Electro-Optics Systems Design*
 * **William D. Rogatto** – *Electro-Optical Components*
 * **George W. Masters** – *Electro-Optical Systems Test and Evaluation*
+* **Roger T. Hanlon and John B. Messenger** - *Cephalopod Behaviour*
 
 These references guide the future of implementation of sensor and optical response models.
 

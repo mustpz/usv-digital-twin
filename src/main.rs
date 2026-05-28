@@ -9,6 +9,7 @@ mod models;
 mod optics;
 mod ui; 
 mod telemetry; 
+mod biomimicry;
 
 use environment::{setup_ocean_environment, sync_ocean_material, OceanMaterial};
 use vehicle::{
