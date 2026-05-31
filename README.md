@@ -27,7 +27,7 @@ and visual signature behavior of Unmanned Surface Vehicles (USVs). This project 
 
 ### 🚧 Next Phase
 - [x] **Asynchronous Bidirectional Telemetry Pipeline & Closed-Loop API Integration** (Completed)
-- [/] **Bio-Inspired Adaptive Escape Dynamics** (Core State Machine & ECS Framework Compiled)
+- [X] **Bio-Inspired Adaptive Escape Dynamics** (Core State Machine & ECS Framework Compiled)
 - [ ] **Real-Time Multi-Spectral Camouflage Response Subsystems**
  
 
@@ -68,6 +68,8 @@ models.rs * Hardware Abstraction: Future module reserved for multispectral senso
 telemetry.rs * Design and initialization of an asynchronous data pipeline to handle real-time vehicle diagnostics and optical sensor telemetry. Encapsulates critical kinematic and environmental data streams, including depth parameters and velocity matrices. Prepares the data layer for asynchronous transmission to remote telemetry dashboards or control hubs.
 
 biomimicry.rs * Implements a deterministic, low-latency state machine inspired by cephalopod mechanics to execute tactical autonomous evasion maneuvers. This layer consumes real-time async telemetry data to dynamically adapt hull kinematics and multispectral signatures against incoming hostile threat vectors.
+
+bridge.rs * Converts raw hardware telemetry data into actionable threat coefficients for the biomimetic escape matrix. It serves as the deterministic, non-blocking bridge connecting real-world sensors to the autonomous decision loop.
 
 
 ## Theoretical Foundation & References
