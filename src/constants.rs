@@ -14,6 +14,28 @@ pub const SEA_LEVEL_PRESSURE: f64 = 1013.25;
 pub const DRAG_COEFFICIENT: f32 = 0.04; 
 pub const IDEAL_FLOW_VELOCITY: f32 = 5.0; 
 
+// === NEW: Hydrodynamic & Fluids Architecture Constants ===
+
+/// Standard density of seawater at 15°C and 35 PSU salinity (kg/m^3).
+/// Critical for buoyancy, hydrodynamic drag vector calculations, and displacement.
+pub const SEAWATER_DENSITY: f32 = 1025.9;
+
+/// Kinematic viscosity of seawater at 15°C (m^2/s).
+/// Used in Reynolds number evaluation to scale turbulent boundary layer effects.
+pub const SEAWATER_KINEMATIC_VISCOSITY: f32 = 0.00000119;
+
+/// Gravitational acceleration constant (m/s^2).
+/// Governs Froude number scaling and Gerstner wave dispersion relations.
+pub const GRAVITY: f32 = 9.80665;
+
+/// Added Mass Coefficient for a slender/biomimetic USV hull configuration.
+/// Accounted for in transient acceleration phases to simulate fluid entrainment.
+pub const ADDED_MASS_COEFFICIENT: f32 = 0.08;
+
+/// Critical Reynolds Number for laminar-to-turbulent boundary layer transition.
+/// Triggers non-linear drag scaling and dynamic wake particle instantiation.
+pub const CRITICAL_REYNOLDS_NUMBER: f32 = 500000.0;
+
 // --- Simulation Presets & Enums ---
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
