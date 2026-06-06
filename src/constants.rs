@@ -124,7 +124,7 @@ pub struct OceanSettings {
 
 impl Default for OceanSettings {
     /// Default state initialized to Mediterranean/Aegean standards
-    /// to provide a balanced baseline for optical attenuation testing.
+    /// to provide a balanced baseline for the optical attenuation testing.
     fn default() -> Self {
         Self {
             ocean_type: OceanType::Aegean,
