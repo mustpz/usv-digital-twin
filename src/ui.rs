@@ -27,6 +27,9 @@ pub fn update_ui_system(
                 if ui.selectable_label(settings.ocean_type == OceanType::Caribbean, "Caribbean Basin").clicked() {
                     settings.ocean_type = OceanType::Caribbean;
                 }
+                if ui.selectable_label(settings.ocean_type == OceanType::Baltic, "Baltic Sea").clicked() {
+                    settings.ocean_type = OceanType::Baltic; 
+                }
             });
             
             ui.separator();

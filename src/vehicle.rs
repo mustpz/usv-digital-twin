@@ -40,6 +40,7 @@ pub fn sensor_sampling_system(
             let base_color = match ocean_settings.ocean_type {
                 OceanType::Aegean => Vec3::new(0.02, 0.05, 0.1),
                 OceanType::Caribbean => Vec3::new(0.0, 0.3, 0.4),
+                OceanType::Baltic => Vec3::new(0.01, 0.04, 0.05),
             };
             let turbidity_factor = ocean_settings.turbidity * 2.0;
             let green_shift = Vec3::new(0.1, 0.2, 0.1) * turbidity_factor;

@@ -71,6 +71,8 @@ pub fn calculate_beer_lambert_attenuation(
         OceanType::Aegean => (0.650, 0.070, 0.035), 
         // Tropical waters exhibit lower overall absorption, favoring blue/cyan.
         OceanType::Caribbean => (0.350, 0.040, 0.015),
+        // Baltic: Extreme high attenuation across the spectrum, catastrophic loss in blue.
+        OceanType::Baltic => (0.950, 0.250, 0.450),
     };
 
     // Physics-driven decay calculation.

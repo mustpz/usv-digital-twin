@@ -83,6 +83,7 @@ pub fn sync_ocean_material(
         let base_color = match settings.ocean_type {
             crate::constants::OceanType::Aegean => Color::rgb(0.0, 0.67, 0.63),
             crate::constants::OceanType::Caribbean => Color::rgb(0.0, 0.55, 0.67),
+            crate::constants::OceanType::Baltic => Color::rgb(0.08, 0.18, 0.15),
         };
         material.deep_water_color = base_color;
     }
