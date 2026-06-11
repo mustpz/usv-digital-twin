@@ -113,6 +113,10 @@ These references guide the future of implementation of sensor and optical respon
 - [x] **Bio-Inspired Adaptive Escape Dynamics** 
   - *Implementation:* Developed and fully compiled a deterministic, low-latency tactical state machine (`EvasionMode`) and component matrix (`ThreatVector`, `OctopodEvasionMatrix`) within the Bevy ECS architecture. The framework is engineered to consume real-time asynchronous telemetry data, enabling independent, localized micro-maneuvers and reactive hydroelastic evasion profiles against simulated hostile assets.  
 
+- [x] **Tactical Navigation & Regulatory Autonomy (COLREG Integration)**
+  - *COLREG Rule 14 Compliance (Head-on Situation):* Implemented automated reciprocal approach detection utilizing 3D vector dot-product geometry, forcing the USV to execute a deterministic course alteration to starboard (right).
+  - *COLREG Rule 15 & 16 Compliance (Crossing Situation):* Integrated a real-time give-way kinematics solver that identifies crossing threats from the starboard vector and dynamically computes an avoidance path clear astern of the target vessel.
+
 ### 🚧 In Progress
 
 - [ ] **Full Multispectral Camouflage & Perception Engine**
