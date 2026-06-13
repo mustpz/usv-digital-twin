@@ -1,5 +1,7 @@
 use bevy::prelude::*;
-use crate::constants::{OceanSettings, OceanType};
+use crate::constants::{
+    OceanSettings, OceanType, GRAVITY, CRITICAL_FROUDE_NUMBER, DRAG_COEFFICIENT, SEAWATER_DENSITY
+};
 use crate::models::UnmannedSurfaceVehicle; 
 
 #[derive(Component)]
@@ -84,14 +86,14 @@ pub fn apply_camouflage_system(
 fn calculate_gerstner_component(
     pos: Vec2, 
     dir: Vec2, 
-    steepness: f32, 
+    stepness: f32, 
     freq: f32, 
     time: f32, 
     amplitude: f32
 ) -> Vec3 {
     let d = dir.normalize();
     let f = freq * d.dot(pos) + time;
-    let a = steepness * amplitude / freq;
+    let a = stepness * amplitude / freq;
 
     Vec3::new(
         d.x * (a * f.cos()), 
@@ -128,7 +130,7 @@ pub fn float_vehicle_system(
         
         let delta = 0.8; 
         let d_forward = get_total_wave_displacement(x, z + delta, elapsed, settings.wave_amplitude, settings.wave_frequency);
-        let d_right = get_total_wave_displacement(x + delta, z, elapsed, settings.wave_amplitude, settings.wave_frequency);
+            let d_right = get_total_wave_displacement(x + delta, z, elapsed, settings.wave_amplitude, settings.wave_frequency);
 
         transform.translation.y = displacement.y + 0.8; 
 
@@ -147,29 +149,58 @@ pub fn float_vehicle_system(
     }
 }
 
-/// Core propulsion system. Integrates hydrodynamic drag force into movement logic.
-/// The effective speed is reduced by the calculated 'current_drag' to simulate water resistance.
+/// Core propulsion system. Integrates hydrodynamic drag force and dynamic Froude Number state changes.
+/// When the calculated Froude Number passes CRITICAL_FROUDE_NUMBER, the hull breaks its wave-making
+/// resistance barrier and transitions into high-velocity planing mode.
 pub fn move_vehicle(
     keyboard_input: Res<ButtonInput<KeyCode>>, 
     mut query: Query<(&mut Transform, &mut UnmannedSurfaceVehicle), With<Vehicle>>, 
     time: Res<Time>, 
 ) {
-    let base_propulsion_force = 10.0; 
+    let base_propulsion_force = 12.0; 
     let rotation_speed = 2.5; 
+    
+    // USV Characteristic Wetted Length along the keel profile (meters)
+    let hull_characteristic_length: f32 = 2.0; 
 
     for (mut transform, mut usv) in query.iter_mut() {
+        
+        // Retrieve current forward-axis velocity magnitude from the kinematic state
+        let current_velocity_magnitude = usv.vessel_speed;
+
+        // --- NON-LINEAR FROUDE NUMBER & PLANING PHASE DETERMINATION ---
+        // Formula: Fr = v / sqrt(g * L)
+        let froude_number = current_velocity_magnitude / (GRAVITY * hull_characteristic_length).sqrt();
+
+        // Establish structural fluid damping modifiers based on hull hydro-regime
+        let dynamic_drag_modifier = if froude_number >= CRITICAL_FROUDE_NUMBER {
+            // Planing Phase: Hull dynamically breaks displacement limits, decoupling wave-making resistance
+            // Simulates severe drag drop (e.g., 45% dampening bypass) as the hull skims the surface interface
+            0.55
+        } else {
+            // Displacement Phase: Standard fluid-boundary profile active; wave resistance operates at nominal index
+            1.00
+        };
+
         // --- REAL-TIME HYDRODYNAMIC CALCULATIONS ---
-        // Simple drag approximation: F_d = 1/2 * ρ * v^2 * C_d
-        // We simulate this by increasing drag based on the current propulsion state.
+        // Standard Fluid Drag Force Equation modulated by the calculated hull phase boundary:
+        // F_drag = (1/2 * ρ * v^2 * C_d) * dynamic_drag_modifier
         if keyboard_input.pressed(KeyCode::KeyW) {
-            usv.hydrodynamics.current_drag = (usv.hydrodynamics.current_drag + 0.05).min(2.0);
+            let exponential_velocity_drag = 0.5 * SEAWATER_DENSITY * current_velocity_magnitude.powi(2) * DRAG_COEFFICIENT;
+            
+            // Incrementally buffer active system drag while embedding the planing optimization matrix
+            usv.hydrodynamics.current_drag = ((usv.hydrodynamics.current_drag + (exponential_velocity_drag * 0.01)) * dynamic_drag_modifier).min(3.5);
             usv.hydrodynamics.is_flow_steady = true; 
         } else {
             usv.hydrodynamics.current_drag = (usv.hydrodynamics.current_drag - 0.1).max(0.0);
             usv.hydrodynamics.is_flow_steady = false;
         }
 
-        let effective_speed = base_propulsion_force - usv.hydrodynamics.current_drag;
+        // Resolve kinematics by integrating propulsion magnitude minus boundary resistance factors
+        let effective_speed = (base_propulsion_force - usv.hydrodynamics.current_drag).max(0.0);
+        
+        // Cache calculated effective speed vector directly back into the state resource
+        usv.vessel_speed = if keyboard_input.pressed(KeyCode::KeyW) { effective_speed } else { 0.0 };
 
         if keyboard_input.pressed(KeyCode::KeyW) {
             let forward = transform.forward();

@@ -16,7 +16,7 @@ pub struct Hydrodynamics {
 #[derive(Component)]
 pub struct UnmannedSurfaceVehicle {
     pub name: String,
-    pub speed: f64,
+    pub vessel_speed: f32,
     
     // --- Multispectral & Stealth Configuration ---
     /// Determines if the active scanning sensors are operational.
@@ -45,7 +45,7 @@ impl UnmannedSurfaceVehicle {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
-            speed: 0.0,
+            vessel_speed: 0.0,
             multispectral_sensor_active: true,
             
             // Defaulting to a neutral gray until the first environmental sample is processed.

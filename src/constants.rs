@@ -40,8 +40,21 @@ pub const ADDED_MASS_COEFFICIENT: f32 = 0.08;
 /// Triggers non-linear drag scaling and dynamic wake particle instantiation.
 pub const CRITICAL_REYNOLDS_NUMBER: f32 = 500000.0;
 
+/// Froude Number Limit for displacement-to-planing hull transition.
+/// Used to dynamically alter the wave-making drag coefficient as velocity scales.
+pub const CRITICAL_FROUDE_NUMBER: f32 = 0.4;
+
+/// Seawater Bulk Modulus at 15°C (Pa).
+/// Essential for high-fidelity acoustic sensor simulation and compressibility effects under high pressure.
+pub const SEAWATER_BULK_MODULUS: f64 = 2.34e9;
+
+/// Dynamic skin friction coefficient based on ITTC-57 correlation line.
+/// Simulates the baseline viscous resistance acting on the wetted surface area of the USV hull.
+pub const SKIN_FRICTION_COEFFICIENT: f32 = 0.0075;
+
+
 // =========================================================================
-// --- NEW: Advanced Optical & Multispectral Attenuation Constants ---
+// --- Optical & Multispectral Attenuation Constants ---
 // =========================================================================
 
 /// Baseline attenuation coefficient for blue spectrum (470nm) in clear waters (m^-1).
@@ -57,7 +70,7 @@ pub const RED_ATTENUATION_COEFFICIENT: f32 = 0.35;
 pub const WATER_VERDET_CONSTANT: f32 = 0.0134; // rad / (T * m) at 589 nm
 
 // =========================================================================
-// --- NEW: Biomimetic Octopus-Evasion & Hydrofoil Constants ---
+// ---Biomimetic Octopus-Evasion & Hydrofoil Constants ---
 // =========================================================================
 
 /// Maximum propulsion force multiplier during a biomimetic "jet propulsion" maneuver.
