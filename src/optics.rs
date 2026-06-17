@@ -4,6 +4,36 @@ use crate::constants::{OceanSettings, OceanType};
 /// Transitioning from static texture mapping to procedural spectral modeling.
 /// This module handles the core physics of light-matter interaction in a dynamic aquatic medium.
 
+/// ============================================================================
+/// 1. MULTISPECTRAL CAMOUFLAGE & CEPHALOPOD BIOMIMICRY ECS COMPONENTS
+/// ============================================================================
+
+/// ECS Component that encapsulates the active camouflage state across multiple spectrums.
+/// Models dynamic reflectivity and thermal/radar signatures for low-observability USV metrics.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct MultispectralCamouflage {
+    /// Visible spectrum reflectivity factor. Range: 0.0 (Perfect active camouflage) to 1.0 (Fully visible).
+    pub visible_reflectivity: f32,
+    /// Infrared (IR) signature modifier. Scales the thermal emission profile of the propulsion/hull.
+    pub infrared_signature: f32,
+    /// Radar Cross Section (RCS) multiplier. Models the radar-absorbent properties of the adaptive skin.
+    pub radar_cross_section: f32,
+}
+
+impl Default for MultispectralCamouflage {
+    fn default() -> Self {
+        Self {
+            visible_reflectivity: 1.0,
+            infrared_signature: 1.0,
+            radar_cross_section: 1.0,
+        }
+    }
+}
+
+/// ============================================================================
+/// 2. PHYSICS & GEOMETRIC OPTICS FUNCTIONS
+/// ============================================================================
+
 /// Calculates the refracted vector using Snell's Law in vector form.
 /// Implements rigorous handling of internal reflection and medium transitions.
 pub fn calculate_snell_refraction(
@@ -128,4 +158,63 @@ pub fn calculate_visibility_range(turbidity: f32) -> f32 {
     if turbidity <= 0.0001 { return 150.0; }
     // The constant 1.7 represents the standard contrast threshold for human/sensor vision.
     1.7 / turbidity
+}
+
+/// ============================================================================
+/// 3. BIOMIMETIC SIMULATION SYSTEMS (BEVY ECS LAYER)
+/// ============================================================================
+
+/// Bevy ECS System that dynamically updates the multispectral camouflage matrices.
+/// Emulates cephalopod chromatophore and iridophore adaptation velocity mapped against
+/// local water turbidity, Secchi depth limits, and spectral attenuation.
+pub fn update_biomimetic_camouflage(
+    time: Res<Time>,
+    ocean_settings: Res<OceanSettings>,
+    mut camo_query: Query<(&mut MultispectralCamouflage, &Transform, &crate::biomimicry::OctopodEvasionMatrix)>,
+) {
+    let visibility_limit = calculate_visibility_range(ocean_settings.turbidity);
+    let biological_adaptation_speed = 1.8 * time.delta_seconds();
+
+    for (mut camo, transform, evasion_matrix) in camo_query.iter_mut() {
+        let vehicle_depth = (-transform.translation.y).max(0.0);
+        
+        // BASELINE TARGETS: Environmental baseline matching
+        let mut target_visible = if visibility_limit < 10.0 { 0.05 } else { (0.1 + (vehicle_depth * 0.02)).min(0.4) };
+        let mut target_ir = if ocean_settings.temperature < 15.0 { 0.3 } else { 0.6 };
+
+        // ============================================================================
+        // COLREG & BIOMIMETIC MANEUVER INTEGRATION
+        // Adjust camouflage profiles based on the active tactical state machine register
+        // ============================================================================
+        match evasion_matrix.current_mode {
+            // Absolute Tactical Escape: Maximize chromatophore compression during emergency jetting
+            crate::biomimicry::EvasionMode::JetPropulsion => {
+                target_visible *= 0.5; // Adaptive skin darkens/blends completely to match rapid fluid flow
+                target_ir *= 0.4;      // Heat signatures are heavily masked or deflected during peak thrust
+            },
+            // Active Decoy Deployment: Total disruption of optical and thermal sensor tracking loops
+            crate::biomimicry::EvasionMode::InkCloudDecoy => {
+                target_visible = 0.01; // Theoretical zero visibility (Complete background blending/aerosol mask)
+                target_ir = 0.1;       // Complete thermal dampening
+            },
+            // COLREG Regulated Maneuvers: Maintain standard adaptive stealth profile to avoid sensor blinding
+            crate::biomimicry::EvasionMode::ColregHeadOnAlterCourseStarboard |
+            crate::biomimicry::EvasionMode::ColregGiveWayCrossing => {
+                target_visible *= 0.8; // Controlled stabilization for secure radar signature feedback
+            },
+            _ => {} // Idle states use nominal background matching profiles
+        }
+
+        // Execute asynchronous biological cell dampening (Interpolation)
+        camo.visible_reflectivity += (target_visible - camo.visible_reflectivity) * biological_adaptation_speed;
+        camo.infrared_signature += (target_ir - camo.infrared_signature) * biological_adaptation_speed;
+        
+        // Radar Cross Section dynamically matches ocean wave state (Clutter masking)
+        let wave_clutter_factor = calculate_procedural_wave_height(transform.translation.xz(), time.elapsed_seconds(), 3);
+        camo.radar_cross_section = (0.2 + (wave_clutter_factor.abs() * 0.1)).clamp(0.1, 0.8);
+
+        // Strict boundary constraints
+        camo.visible_reflectivity = camo.visible_reflectivity.clamp(0.0, 1.0);
+        camo.infrared_signature = camo.infrared_signature.clamp(0.0, 1.0);
+    }
 }
