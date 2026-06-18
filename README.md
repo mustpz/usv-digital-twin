@@ -55,7 +55,11 @@ ui.rs * Interaction Layer: Implements the bevy_egui control panel. It acts as th
 
 constants.rs * Physical Core: Defines the OceanSettings struct and stores hardcoded environmental constants (e.g., Sea level pressure, refractive index base).
 
-optics.rs * Optical Physics Engine: Contains the mathematical implementations for Snell’s Law, Fresnel Reflectance, and the Beer-Lambert Law for light attenuation.
+optics/ (Physics & Active Stealth Engine): * core.rs: Contains vector-form Snell’s Law, Schlick's Fresnel reflectance, seawater IOR, and Beer-Lambert attenuation profiles (Aegean, Caribbean, Baltic).
+
+render.rs: Manages dynamic transparency, FLIR thermal camera simulation, and screen-space tactical HUD readouts using Bevy PBR assets.
+
+mod.rs: Packages background physics loops and foreground rendering into a modular OpticsPlugin.
 
 scene.rs * Environment & Rendering: Manages the infinite ocean tiling system, volumetric fog, and orbital wave oscillations. It bridges the physical data from optics.rs to the visual mesh.
 
