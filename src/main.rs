@@ -1,12 +1,13 @@
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin; 
 
+pub mod optics;
+
 mod constants;
 mod environment;
 mod vehicle;
 mod scene;
 mod models;
-mod optics;
 mod ui; 
 mod telemetry; 
 mod biomimicry;
@@ -22,7 +23,7 @@ use vehicle::{
 };
 use scene::{setup_scene, update_scene_system}; 
 use constants::OceanSettings; 
-use ui::update_ui_system;    
+use ui::update_ui_system;     
 
 fn main() {
     println!("--- USV Digital Twin: High-Fidelity Gerstner Surface Simulation ---");
@@ -44,6 +45,7 @@ fn main() {
         // 2. PLUGINS & ASSET PIPELINE
         .add_plugins(EguiPlugin) 
         .add_plugins(MaterialPlugin::<OceanMaterial>::default())
+        .add_plugins(optics::OpticsPlugin)
         
         // 3. GLOBAL RESOURCES
         .init_resource::<OceanSettings>() 

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::constants::{OceanSettings, OceanType};
-use crate::optics::calculate_visibility_range;
+use crate::optics::core::calculate_visibility_range;
 // Importing the USV model to access stealth parameters
 use crate::models::UnmannedSurfaceVehicle; 
 
