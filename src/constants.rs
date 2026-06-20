@@ -126,13 +126,19 @@ pub struct OceanSettings {
     /// Used for dynamic wake generation and optical flow calculations.
     pub vessel_speed: f32,
 
-    // --- NEW: Multi-Physical Sensor Additions ---
+    // --- Multi-Physical Sensor Additions ---
     
     /// Real-time ambient light lux level at surface interface.
     pub surface_lux: f32,
 
     /// Depth matrix scalar (m). Calculated dynamically from the vessel's transform.
     pub current_depth: f32,
+
+    /// Vertical atmospheric temperature gradient (dT/dh) directly above the sea surface.
+    /// Used to simulate atmospheric refraction anomalies. Positive values represent 
+    /// severe temperature inversions that trigger "Superior Mirage" (Fata Morgana) phenomena, 
+    /// causing optical target position shifting and multispectral sensor signal bending.
+    pub temp_gradient: f32,
 }
 
 impl Default for OceanSettings {
@@ -149,6 +155,7 @@ impl Default for OceanSettings {
             vessel_speed: 0.0,      // Initialization state
             surface_lux: 100000.0,  // Standard direct sunlight lumens
             current_depth: 0.0,     // Surface initialization
+            temp_gradient: 0.0,
         }
     }
 }

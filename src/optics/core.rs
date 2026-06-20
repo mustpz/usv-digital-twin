@@ -5,7 +5,7 @@ use crate::constants::{OceanSettings, OceanType};
 /// This module handles the core physics of light-matter interaction in a dynamic aquatic medium.
 
 /// ============================================================================
-/// 1. MULTISPECTRAL CAMOUFLAGE & CEPHALOPOD BIOMIMICRY ECS COMPONENTS
+/// 1. MULTISPECTRAL CAMOUFLAGE & ATMOSPHERIC ANOMALY ECS COMPONENTS
 /// ============================================================================
 
 /// ECS Component that encapsulates the active camouflage state across multiple spectrums.
@@ -30,9 +30,48 @@ impl Default for MultispectralCamouflage {
     }
 }
 
+/// ECS Component to model tactical target tracking displacement caused by microclimate inversions.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub struct AtmosphericMirageEffect {
+    /// The virtual vertical displacement (Δy) in meters. Represents how high the target appears to float in the sky.
+    pub vertical_offset: f32,
+    /// Distortion coefficient affecting optical shape integrity (models Fata Morgana stretching).
+    pub shape_distortion: f32,
+}
+
 /// ============================================================================
 /// 2. PHYSICS & GEOMETRIC OPTICS FUNCTIONS
 /// ============================================================================
+
+/// Calculates vertical ray displacement caused by severe sea-surface temperature inversions.
+/// Implements continuous integration approximation for standard mirage angle deviation.
+pub fn calculate_atmospheric_refraction(
+    distance_to_target: f32,
+    settings: &OceanSettings,
+) -> AtmosphericMirageEffect {
+    // If there is no temperature inversion gradient, return zero optical distortion
+    if settings.temp_gradient <= 0.0 {
+        return AtmosphericMirageEffect::default();
+    }
+
+    // Standard baseline refractive index gradient derived from Gladston-Dale relation: dn/dh
+    // Severe warm-over-cold microclimates introduce negative refractive index gradients with height
+    let dn_dh = -0.00002 * settings.temp_gradient;
+
+    // Ray bending arc length estimation based on Earth's curvature radius and integrated refraction index
+    let deviation_angle = (distance_to_target * dn_dh).abs();
+
+    // Compute apparent vertical coordinate shift (Δy) based on small-angle approximation tangent linear expansion
+    let vertical_offset = distance_to_target * deviation_angle.tan();
+
+    // Distortion multiplier scales with distance and temperature severity (Fata Morgana stretching factor)
+    let shape_distortion = (settings.temp_gradient * 0.15) * (distance_to_target * 0.001);
+
+    AtmosphericMirageEffect {
+        vertical_offset: vertical_offset.clamp(0.0, 45.0), // Bound maximum mirage height to maintain visual consistency
+        shape_distortion: shape_distortion.clamp(0.0, 1.0),
+    }
+}
 
 /// Calculates the refracted vector using Snell's Law in vector form.
 /// Implements rigorous handling of internal reflection and medium transitions.
@@ -86,27 +125,17 @@ pub fn calculate_fresnel_reflectance(
 
 /// ADVANCED BEER-LAMBERT IMPLEMENTATION
 /// Models multispectral attenuation based on wavelength-dependent absorption coefficients.
-/// 
-/// Replaced fixed multipliers with specific coefficients for Mediterranean (Aegean) 
-/// vs. Tropical (Caribbean) spectral profiles to enhance Digital Twin fidelity.
 pub fn calculate_beer_lambert_attenuation(
     initial_intensity: Color,
     distance: f32,
     settings: &OceanSettings,
 ) -> Color {
-    // Spectral absorption coefficients (m^-1) based on real-world oceanographic data.
-    // Aegean Sea (higher turbidity/particulates) vs Tropical (pure water bias).
     let (mu_r, mu_g, mu_b) = match settings.ocean_type {
-        // Higher attenuation in red spectrum for Aegean due to organic particulates.
         OceanType::Aegean => (0.650, 0.070, 0.035), 
-        // Tropical waters exhibit lower overall absorption, favoring blue/cyan.
         OceanType::Caribbean => (0.350, 0.040, 0.015),
-        // Baltic: Extreme high attenuation across the spectrum, catastrophic loss in blue.
         OceanType::Baltic => (0.950, 0.250, 0.450),
     };
 
-    // Physics-driven decay calculation.
-    // Boosting distance artificially to match visual dynamic range of digital displays.
     let atten_r = (-(mu_r * settings.turbidity * distance)).exp();
     let atten_g = (-(mu_g * settings.turbidity * distance)).exp();
     let atten_b = (-(mu_b * settings.turbidity * distance)).exp();
@@ -120,9 +149,6 @@ pub fn calculate_beer_lambert_attenuation(
 
 /// WAVE DYNAMICS: Procedural Ocean Surface Generation
 /// Computes wave displacement using a sum of Gerstner Waves.
-/// This replaces the static texture tiling with a continuous mathematical surface.
-///
-/// Formula: P(x, y, t) = sum( Ai * Di * sin( ki * (x, y) - wi * t + phi_i ) )
 pub fn calculate_procedural_wave_height(
     pos: Vec2, 
     time: f32, 
@@ -130,7 +156,6 @@ pub fn calculate_procedural_wave_height(
 ) -> f32 {
     let mut height = 0.0;
     
-    // Simulating multiple wave octaves for 'natural' ocean look
     for i in 1..=complexity {
         let freq = i as f32 * 0.5;
         let amp = 1.0 / (i as f32 * 2.0);
@@ -143,7 +168,6 @@ pub fn calculate_procedural_wave_height(
 }
 
 /// Dynamically adjusts the refractive index (IOR) based on environmental variables.
-/// Critical for high-fidelity USV (Unmanned Surface Vehicle) sensor simulation.
 pub fn calculate_seawater_index(settings: &OceanSettings) -> f32 {
     let n_base = 1.333; 
     let salinity_correction = (settings.salinity - 35.0) * 0.0002;
@@ -153,68 +177,66 @@ pub fn calculate_seawater_index(settings: &OceanSettings) -> f32 {
 }
 
 /// Secchi Depth Calculation
-/// Used to determine the visual operational limit for USV sensors.
 pub fn calculate_visibility_range(turbidity: f32) -> f32 {
     if turbidity <= 0.0001 { return 150.0; }
-    // The constant 1.7 represents the standard contrast threshold for human/sensor vision.
     1.7 / turbidity
 }
 
 /// ============================================================================
-/// 3. BIOMIMETIC SIMULATION SYSTEMS (BEVY ECS LAYER)
+/// 3. BIOMIMETIC & ATMOSPHERIC SIMULATION SYSTEMS (BEVY ECS LAYER)
 /// ============================================================================
 
 /// Bevy ECS System that dynamically updates the multispectral camouflage matrices.
-/// Emulates cephalopod chromatophore and iridophore adaptation velocity mapped against
-/// local water turbidity, Secchi depth limits, and spectral attenuation.
 pub fn update_biomimetic_camouflage(
     time: Res<Time>,
     ocean_settings: Res<OceanSettings>,
-    mut camo_query: Query<(&mut MultispectralCamouflage, &Transform, &crate::biomimicry::OctopodEvasionMatrix)>,
+    mut camo_query: Query<(
+        &mut MultispectralCamouflage, 
+        &Transform, 
+        &crate::biomimicry::OctopodEvasionMatrix,
+        Option<&mut AtmosphericMirageEffect>
+    )>,
 ) {
     let visibility_limit = calculate_visibility_range(ocean_settings.turbidity);
     let biological_adaptation_speed = 1.8 * time.delta_seconds();
 
-    for (mut camo, transform, evasion_matrix) in camo_query.iter_mut() {
+    for (mut camo, transform, evasion_matrix, mirage_opt) in camo_query.iter_mut() {
         let vehicle_depth = (-transform.translation.y).max(0.0);
         
         // BASELINE TARGETS: Environmental baseline matching
         let mut target_visible = if visibility_limit < 10.0 { 0.05 } else { (0.1 + (vehicle_depth * 0.02)).min(0.4) };
         let mut target_ir = if ocean_settings.temperature < 15.0 { 0.3 } else { 0.6 };
 
-        // ============================================================================
         // COLREG & BIOMIMETIC MANEUVER INTEGRATION
-        // Adjust camouflage profiles based on the active tactical state machine register
-        // ============================================================================
         match evasion_matrix.current_mode {
-            // Absolute Tactical Escape: Maximize chromatophore compression during emergency jetting
             crate::biomimicry::EvasionMode::JetPropulsion => {
-                target_visible *= 0.5; // Adaptive skin darkens/blends completely to match rapid fluid flow
-                target_ir *= 0.4;      // Heat signatures are heavily masked or deflected during peak thrust
+                target_visible *= 0.5; 
+                target_ir *= 0.4;      
             },
-            // Active Decoy Deployment: Total disruption of optical and thermal sensor tracking loops
             crate::biomimicry::EvasionMode::InkCloudDecoy => {
-                target_visible = 0.01; // Theoretical zero visibility (Complete background blending/aerosol mask)
-                target_ir = 0.1;       // Complete thermal dampening
+                target_visible = 0.01; 
+                target_ir = 0.1;       
             },
-            // COLREG Regulated Maneuvers: Maintain standard adaptive stealth profile to avoid sensor blinding
             crate::biomimicry::EvasionMode::ColregHeadOnAlterCourseStarboard |
             crate::biomimicry::EvasionMode::ColregGiveWayCrossing => {
-                target_visible *= 0.8; // Controlled stabilization for secure radar signature feedback
+                target_visible *= 0.8; 
             },
-            _ => {} // Idle states use nominal background matching profiles
+            _ => {} 
         }
 
-        // Execute asynchronous biological cell dampening (Interpolation)
         camo.visible_reflectivity += (target_visible - camo.visible_reflectivity) * biological_adaptation_speed;
         camo.infrared_signature += (target_ir - camo.infrared_signature) * biological_adaptation_speed;
         
-        // Radar Cross Section dynamically matches ocean wave state (Clutter masking)
         let wave_clutter_factor = calculate_procedural_wave_height(transform.translation.xz(), time.elapsed_seconds(), 3);
         camo.radar_cross_section = (0.2 + (wave_clutter_factor.abs() * 0.1)).clamp(0.1, 0.8);
 
-        // Strict boundary constraints
         camo.visible_reflectivity = camo.visible_reflectivity.clamp(0.0, 1.0);
         camo.infrared_signature = camo.infrared_signature.clamp(0.0, 1.0);
+
+        // ATMOSPHERIC INVERSION PROCESSOR: Inject dynamic microclimate optical mirage profiles
+        if let Some(mut mirage) = mirage_opt {
+            let target_distance = transform.translation.length(); // Calculated from localized center grid origin
+            *mirage = calculate_atmospheric_refraction(target_distance, &ocean_settings);
+        }
     }
 }

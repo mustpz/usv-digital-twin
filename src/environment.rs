@@ -5,7 +5,6 @@ use crate::constants::OceanSettings;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct OceanMaterial {
-   
     #[uniform(0)]
     pub turbidity: f32,
     #[uniform(0)]
@@ -14,6 +13,13 @@ pub struct OceanMaterial {
     pub wave_frequency: f32,
     #[uniform(0)]
     pub time: f32,
+    
+    /* ATMOSPHERIC REFRACTION ANOMALY UPDATE:
+       Represents the vertical temperature inversion profile (dT/dh) right above the ocean plane.
+       Passed directly to the WGSL vertex/fragment pipeline to compute optical ray bending factors.
+    */
+    #[uniform(0)]
+    pub temp_gradient: f32,
 
     #[uniform(1)] 
     pub deep_water_color: Color,
@@ -35,16 +41,16 @@ pub fn setup_ocean_environment(
     mut materials: ResMut<Assets<OceanMaterial>>,
     asset_server: Res<AssetServer>, 
 ) {
-    /* CRITICAL UPDATE: Subdivisions.
-       Gerstner waves require high vertex density to render sharp crests.
-       Increasing subdivisions from default to 400 for structural fidelity.
+    /* CRITICAL MESH OPTIMIZATION:
+       Gerstner surface wave vectors require a massive vertex density matrix to render sharp crests.
+       Maintaining plane subdivisions at 400 to prevent edge distortion during dynamic macro-oscillations.
     */
     let ocean_mesh = meshes.add(
-   Mesh::from(bevy::prelude::shape::Plane {
-    size: 2000.0,
-    subdivisions: 400,
-})
-);
+        Mesh::from(bevy::prelude::shape::Plane {
+            size: 2000.0,
+            subdivisions: 400,
+        })
+    );
    
     let water_normal_handle = asset_server.load("textures/water_normal.png");
 
@@ -53,6 +59,7 @@ pub fn setup_ocean_environment(
         wave_amplitude: 1.0,
         wave_frequency: 0.2,
         time: 0.0,
+        temp_gradient: 0.0, // Initializing with a completely stable/neutral atmospheric baseline
         deep_water_color: Color::rgb(0.01, 0.05, 0.1),
         water_normal: water_normal_handle,
     });
@@ -68,7 +75,7 @@ pub fn setup_ocean_environment(
     ));
 }
 
-/// Dynamic synchronization system.
+/// Dynamic synchronization system bridging the ECS state layer to the GPU render assets.
 pub fn sync_ocean_material(
     settings: Res<OceanSettings>,
     time: Res<Time>,
@@ -79,6 +86,9 @@ pub fn sync_ocean_material(
         material.wave_amplitude = settings.wave_amplitude;
         material.wave_frequency = settings.wave_frequency;
         material.time = time.elapsed_seconds();
+        
+        // Dynamic binding injection: Sync global microclimate profiles to the active material instance
+        material.temp_gradient = settings.temp_gradient; 
         
         let base_color = match settings.ocean_type {
             crate::constants::OceanType::Aegean => Color::rgb(0.0, 0.67, 0.63),
