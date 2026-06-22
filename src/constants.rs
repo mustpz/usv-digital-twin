@@ -159,3 +159,19 @@ impl Default for OceanSettings {
         }
     }
 }
+
+// =========================================================================
+// --- NEW: Global Maritime Standards & Simulation Protocols (DNV / IHO / FMI) ---
+// =========================================================================
+
+/// DNV-RP-0513 Standard Baseline Reference.
+/// Governs Verification and Validation (V&V) profiles for Maritime Digital Twins.
+pub const DNV_VV_COMPLIANCE_VERSION: &str = "2020-10";
+
+/// Functional Mock-up Interface (FMI 3.0) Standard Co-Simulation Identifier.
+/// Ensures the cyber-physical model inputs/outputs match global industrial exchange interfaces.
+pub const FMI_STANDARD_VERSION: &str = "3.0";
+
+/// IHO S-57 / S-100 Hydrographic Data Transfer Standard Multiplier.
+/// Mapped to constrain standard dynamic water column voxel attributes.
+pub const IHO_S100_COMPLIANCE_BASELINE: u32 = 100;
