@@ -159,7 +159,7 @@ Color::rgba_linear(
 /// # Mathematical & Architectural Features:
 /// * **Fused Multiply-Add (FMA) Optimization**: Utilizes 2D vector dot products to project 
 ///   the position vector onto the wave direction vector in a single CPU cycle.
-/// * **Trigonometric Reduction**: Employs the double-angle identity ($\sin(x)\cos(x) = 0.5\sin(2x)$) 
+/// * **Trigonometric Reduction**: Employs the double-angle identity (sin(x)cos(x) = 0.5 * sin(2x))
 ///   to eliminate expensive secondary `.cos()` evaluations, decreasing CPU arithmetic load by 50%.
 /// * **Dynamic Frequency Cascading**: Higher-order harmonics exponentially decay in amplitude 
 ///   while increasing in spatial frequency, synthesizing realistic high-frequency surface clutter.
