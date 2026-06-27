@@ -140,14 +140,13 @@ pub fn calculate_beer_lambert_attenuation(
     let atten_g = (-(mu_g * settings.turbidity * distance)).exp();
     let atten_b = (-(mu_b * settings.turbidity * distance)).exp();
     
-Color::rgba_linear(
+    Color::rgba_linear(
         initial_intensity.r() * atten_r,
         initial_intensity.g() * atten_g,
         initial_intensity.b() * atten_b,
         initial_intensity.a(),
     )
 }
-
 
 /// ============================================================================
 /// PROCEDURAL WAVE DYNAMICS & SURFACE SYNTHESIS MODULE
@@ -218,25 +217,31 @@ pub fn calculate_visibility_range(turbidity: f32) -> f32 {
 pub fn update_biomimetic_camouflage(
     time: Res<Time>,
     ocean_settings: Res<OceanSettings>,
+    // 1. SYSTEM PARAMETER INJECTION: Added centralized state reader
+    evasion_state: Res<State<crate::biomimicry::EvasionMode>>, 
     mut camo_query: Query<(
         &mut MultispectralCamouflage, 
         &Transform, 
-        &crate::biomimicry::OctopodEvasionMatrix,
+        // 2. QUERY OPTIMIZATION: Removed &OctopodEvasionMatrix to maximize ECS decoupling
         Option<&mut AtmosphericMirageEffect>
     )>,
 ) {
     let visibility_limit = calculate_visibility_range(ocean_settings.turbidity);
     let biological_adaptation_speed = 1.8 * time.delta_seconds();
 
-    for (mut camo, transform, evasion_matrix, mirage_opt) in camo_query.iter_mut() {
+    // Updated loop signature to reflect the decoupled query
+    for (mut camo, transform, mirage_opt) in camo_query.iter_mut() {
         let vehicle_depth = (-transform.translation.y).max(0.0);
         
         // BASELINE TARGETS: Environmental baseline matching
         let mut target_visible = if visibility_limit < 10.0 { 0.05 } else { (0.1 + (vehicle_depth * 0.02)).min(0.4) };
         let mut target_ir = if ocean_settings.temperature < 15.0 { 0.3 } else { 0.6 };
 
-        // COLREG & BIOMIMETIC MANEUVER INTEGRATION
-        match evasion_matrix.current_mode {
+        // 3. SINGLE SOURCE OF TRUTH: Direct deterministic evaluation
+        let current_evasion_mode = *evasion_state.get();
+
+        // COLREG & BIOMIMETIC MANEUVER INTEGRATION (Deterministic Mitigation)
+        match current_evasion_mode {
             crate::biomimicry::EvasionMode::JetPropulsion => {
                 target_visible *= 0.5; 
                 target_ir *= 0.4;      
@@ -266,7 +271,7 @@ pub fn update_biomimetic_camouflage(
             let target_distance = transform.translation.length(); // Calculated from localized center grid origin
             *mirage = calculate_atmospheric_refraction(target_distance, &ocean_settings);
         }
-    }
+    } 
 }
 
 /// ============================================================================
@@ -295,7 +300,7 @@ impl Default for FmiModelExchangeState {
     }
 }
 
-/// NEW: Verification & Validation (V&V) Engine implementing rigid DNV-RP-0513 protocols.
+/// Verification & Validation (V&V) Engine implementing rigid DNV-RP-0513 protocols.
 /// Cross-checks the computed atmospheric refraction offsets against empirical IHO S-100 environmental baselines.
 /// Returns `true` if the digital twin fidelity remains within the certified acceptable boundary (< 0.005 tolerance).
 pub fn validate_optical_fidelity_dnv(
