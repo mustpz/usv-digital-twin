@@ -13,6 +13,8 @@ mod telemetry;
 mod biomimicry;
 mod bridge; 
 
+use telemetry::{stream_biomimetic_telemetry_system, TelemetryStreamConfig};
+
 use environment::{setup_ocean_environment, sync_ocean_material, OceanMaterial};
 use vehicle::{
     spawn_vehicle, 
@@ -30,7 +32,7 @@ fn main() {
     println!("--- Initializing Optical Signature Management & Adaptive Camouflage ---");
 
     App::new()
-        // 1. PRIMARY WINDOW CONFIGURATION
+        // 1. PRIMARY WINDOW & DEFAULT PLUGINS CONFIGURATION
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "USV Strategic Digital Twin | Gerstner Photonics Engine".into(),
@@ -42,15 +44,24 @@ fn main() {
             ..default()
         }))
         
-        // 2. PLUGINS & ASSET PIPELINE
+        // 2. THIRD-PARTY PLUGINS & ASSET PIPELINE
         .add_plugins(EguiPlugin) 
         .add_plugins(MaterialPlugin::<OceanMaterial>::default())
         .add_plugins(optics::OpticsPlugin)
         
-        // 3. GLOBAL RESOURCES
-        .init_resource::<OceanSettings>() 
+        // 3. FINITE STATE MACHINE (FSM) REGISTRATION
+        .init_state::<crate::biomimicry::EvasionMode>()
         
-        // 4. STARTUP SYSTEMS
+        // 4. GLOBAL RESOURCES & TELEMETRY STREAMER CONFIG
+        .init_resource::<OceanSettings>() 
+        .insert_resource(TelemetryStreamConfig {
+            client: reqwest::Client::new(),
+            api_url: "https://api.yourcontrolstation.com/v1/telemetry".to_string(),
+            // Stream telemetry packets at exactly 5Hz (Every 0.2 seconds) to avoid CPU throttling
+            rate_limiter: Timer::from_seconds(0.2, TimerMode::Repeating),
+        })
+        
+        // 5. STARTUP SYSTEMS
         .add_systems(Startup, (
             setup_camera, 
             setup_scene, 
@@ -58,7 +69,7 @@ fn main() {
             spawn_vehicle 
         ))
         
-        // 5. UPDATE SYSTEMS (The Simulation Loop)
+        // 6. UPDATE SYSTEMS (The Main Simulation Loop)
         .add_systems(Update, (
             // A. INPUT PHASE: Capture UI commands first
             update_ui_system,
@@ -76,6 +87,10 @@ fn main() {
             (move_vehicle, float_vehicle_system)
                 .chain() 
                 .after(sync_ocean_material),
+                
+            // F. DETERMINISTIC PROTECTION & TELEMETRY NETWORK LAYER
+            crate::biomimicry::calculate_biomimetic_evasion_system,
+            stream_biomimetic_telemetry_system.after(crate::biomimicry::calculate_biomimetic_evasion_system)
         ))
         
         .run();
