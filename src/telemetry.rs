@@ -1,8 +1,11 @@
+use bevy::prelude::*;
+use bevy::tasks::IoTaskPool; 
 use serde::Serialize;
 use reqwest::Client;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Data Transfer Object (DTO) representing the core telemetry metrics of the USV (Unmanned Surface Vehicle).
-/// This structure is serialized into JSON format to stream real-time data to backend servers or control stations.
+/// Data Transfer Object (DTO) representing the core telemetry metrics of the USV.
+/// This structure is serialized into JSON format to stream real-time data to backend servers.
 #[derive(Serialize, Debug, Clone)]
 pub struct UsvTelemetryData {
     pub depth: f32,       // Sensor reading for under-water depth gauge
@@ -10,48 +13,86 @@ pub struct UsvTelemetryData {
     pub timestamp: u64,   // Unix timestamp in milliseconds for real-time tracking synchronization
 }
 
+/// NEW: Bevy Resource that encapsulates the persistent HTTP configuration.
+/// Ensures the system reuses the same connection pool instead of allocating a client every frame.
+#[derive(Resource)]
+pub struct TelemetryStreamConfig {
+    pub client: Client,
+    pub api_url: String,
+    pub rate_limiter: Timer, // Controls the packet emission frequency (e.g., 5Hz instead of 120Hz)
+}
+
 /// Asynchronously customizes, serializes, and transmits the telemetry packet to a remote target API endpoint.
 /// Utilizes reqwest for non-blocking network I/O, ensuring the Bevy game loop never experiences frame drops.
 pub async fn send_telemetry_packet(
-    client: &Client, 
-    api_url: &str, 
-    data: &UsvTelemetryData
-) -> Result<String, Box<dyn std::error::Error>> {
+    client: Client, // Moved ownership directly into the async task boundary
+    api_url: String, 
+    data: UsvTelemetryData
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> { // Send + Sync required for safe multi-threaded task spawning
     
     // 1. Serialize the safe Rust struct into a raw, universal JSON string payload
-    let json_payload = serde_json::to_string(data)?;
-    
-    // Log the prepared payload to the console for internal development tracking
-    println!("📦 [Telemetry Stream] JSON Payload Ready: {}", json_payload);
+    let json_payload = serde_json::to_string(&data)?;
     
     // 2. Perform a non-blocking asynchronous HTTP POST request to stream the packet out to the world
-    // Passes the payload directly as text with a JSON content-type header
-    let _response = client.post(api_url)
+    let _response = client.post(&api_url)
         .header("Content-Type", "application/json")
         .body(json_payload.clone())
         .send()
         .await?;
 
-    // Return the successfully generated JSON payload back to the system layer if needed
     Ok(json_payload)
 }
 
-// Asynchronously fetches real-time environment variables or external control override packets.
-/// Utilizes a non-blocking GET request, protecting the siber-physical loop from network latency spikes.
-pub async fn fetch_telemetry_data(
-    client: &Client, 
-    url: &str
-) -> Result<String, reqwest::Error> {
-    
-    println!("📡 [Telemetry Ingress] Fetching real-time environment matrix from: {}", url);
-    
-    // Non-blocking HTTP GET request to capture the physical/virtual world updates
-    let response = client.get(url)
-        .send()
-        .await?;
+/// NEW: Bevy ECS System that extracts physical registers from `biomimicry::calculate_biomimetic_evasion_system`
+/// and pipes them directly into the asynchronous background network worker pool.
+pub fn stream_biomimetic_telemetry_system(
+    time: Res<Time>,
+    mut config: ResMut<TelemetryStreamConfig>,
+    // Reads directly from the same exact components used in your biomimicry system query
+    query: Query<(&Transform, &crate::biomimicry::Velocity)>, 
+) {
+    // Tick the rate limiter timer with delta time; skips execution if the frame interval hasn't finished
+    if !config.rate_limiter.tick(time.delta()).just_finished() {
+        return;
+    }
+
+    let task_pool = IoTaskPool::get();
+
+    for (transform, velocity) in query.iter() {
+        // Safe extraction of underwater vehicle depth metrics based on localized coordinate translation
+        let current_depth = (-transform.translation.y).max(0.0);
+        let current_speed = velocity.0.length();
         
-    // Ensure we parse the response body as text asynchronously without blocking the core executor
-    let body_content = response.text().await?;
-    
-    Ok(body_content)
+        // Dynamic generation of real-world Unix epoch miliseconds
+        let current_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+
+        // Construct the immutable data packet
+        let packet = UsvTelemetryData {
+            depth: current_depth,
+            speed: current_speed,
+            timestamp: current_timestamp,
+        };
+
+        // Deep-clone references to thread-safe structures for async move closure injection
+        let async_client = config.client.clone();
+        let async_url = config.api_url.clone();
+
+        // 3. Spawning the background async thread worker (ZERO frame drops on Bevy's physical side)
+        task_pool.spawn(async move {
+            match send_telemetry_packet(async_client, async_url, packet).await {
+                Ok(payload) => {
+                    // Internal non-blocking logging using Bevy's structured trace layer
+                    trace!(target: "usv_project::telemetry", "Telemetry successfully emitted: {}", payload);
+                }
+                Err(err) => {
+                    // DETERMINISTIC PROTECTION LAYER (Survive Error Accumulation): 
+                    // Network timeouts or packet drops will NEVER drop or cascade errors into the physical hull integration loop.
+                    warn!(target: "usv_project::telemetry", "Telemetry network packet dropped: {}", err);
+                }
+            }
+        }).detach(); // Detach decouples the task lifespan from the execution block frame lifespan
+    }
 }
