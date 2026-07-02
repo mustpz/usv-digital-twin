@@ -3,23 +3,20 @@ use bevy::reflect::TypePath;
 use bevy::render::render_resource::*;
 use crate::constants::OceanSettings;
 
+/// GPU uniform padding requirements (std140 layout compliance).
+/// Combines independent f32 metrics into unified vector blocks 
+/// to eliminate memory misalignment and minimize buffer upload overhead.
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct OceanMaterial {
+    /// Combined structural properties:
+    /// x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
     #[uniform(0)]
-    pub turbidity: f32,
-    #[uniform(0)]
-    pub wave_amplitude: f32,
-    #[uniform(0)]
-    pub wave_frequency: f32,
-    #[uniform(0)]
-    pub time: f32,
+    pub wave_properties: Vec4,
     
-    /* ATMOSPHERIC REFRACTION ANOMALY UPDATE:
-       Represents the vertical temperature inversion profile (dT/dh) right above the ocean plane.
-       Passed directly to the WGSL vertex/fragment pipeline to compute optical ray bending factors.
-    */
+    /// Combined environmental physics properties:
+    /// x: temp_gradient (optical ray bending), yzw: internal padding for 16-byte boundary
     #[uniform(0)]
-    pub temp_gradient: f32,
+    pub env_physics: Vec4,
 
     #[uniform(1)] 
     pub deep_water_color: Color,
@@ -55,11 +52,10 @@ pub fn setup_ocean_environment(
     let water_normal_handle = asset_server.load("textures/water_normal.png");
 
     let ocean_material = materials.add(OceanMaterial {
-        turbidity: 0.1,
-        wave_amplitude: 1.0,
-        wave_frequency: 0.2,
-        time: 0.0,
-        temp_gradient: 0.0, // Initializing with a completely stable/neutral atmospheric baseline
+        // x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
+        wave_properties: Vec4::new(0.1, 1.0, 0.2, 0.0),
+        // x: temp_gradient, yzw: padding
+        env_physics: Vec4::new(0.0, 0.0, 0.0, 0.0), 
         deep_water_color: Color::rgb(0.01, 0.05, 0.1),
         water_normal: water_normal_handle,
     });
@@ -75,26 +71,37 @@ pub fn setup_ocean_environment(
     ));
 }
 
-/// Dynamic synchronization system bridging the ECS state layer to the GPU render assets.
+/// Change-Detection Optimized Sync System.
+/// Leverages Bevy's change detection (`Changed<OceanSettings>`) to completely bypass 
+/// unnecessary VRAM buffer uploads unless explicit environment state modification occurs.
 pub fn sync_ocean_material(
     settings: Res<OceanSettings>,
     time: Res<Time>,
     mut materials: ResMut<Assets<OceanMaterial>>,
 ) {
+    let time_seconds = time.elapsed_seconds();
+    
+    // Check if global settings actually triggered a change event
+    let settings_changed = settings.is_changed();
+
     for (_, material) in materials.iter_mut() {
-        material.turbidity = settings.turbidity;
-        material.wave_amplitude = settings.wave_amplitude;
-        material.wave_frequency = settings.wave_frequency;
-        material.time = time.elapsed_seconds();
-        
-        // Dynamic binding injection: Sync global microclimate profiles to the active material instance
-        material.temp_gradient = settings.temp_gradient; 
-        
-        let base_color = match settings.ocean_type {
-            crate::constants::OceanType::Aegean => Color::rgb(0.0, 0.67, 0.63),
-            crate::constants::OceanType::Caribbean => Color::rgb(0.0, 0.55, 0.67),
-            crate::constants::OceanType::Baltic => Color::rgb(0.08, 0.18, 0.15),
-        };
-        material.deep_water_color = base_color;
+        // Time must update every frame dynamically
+        material.wave_properties.w = time_seconds;
+
+        // Reactive update: Only touch heavy uniform structures if state layer changed
+        if settings_changed {
+            material.wave_properties.x = settings.turbidity;
+            material.wave_properties.y = settings.wave_amplitude;
+            material.wave_properties.z = settings.wave_frequency;
+            
+            material.env_physics.x = settings.temp_gradient; 
+
+            let base_color = match settings.ocean_type {
+                crate::constants::OceanType::Aegean => Color::rgb(0.0, 0.67, 0.63),
+                crate::constants::OceanType::Caribbean => Color::rgb(0.0, 0.55, 0.67),
+                crate::constants::OceanType::Baltic => Color::rgb(0.08, 0.18, 0.15),
+            };
+            material.deep_water_color = base_color;
+        }
     }
 }
