@@ -5,12 +5,13 @@ use bevy::prelude::*;
 // =========================================================================
 
 /// Refractive Index (IOR) of pure water at 20°C.
-/// Used as the baseline for dynamic salinity/temperature corrections.
-pub const WATER_REFRACTIVE_INDEX: f64 = 1.333; 
+/// Dual-typed to prevent runtime casting overhead in shader or physical loops.
+pub const WATER_REFRACTIVE_INDEX: f32 = 1.333; 
+pub const WATER_REFRACTIVE_INDEX_F64: f64 = 1.333; 
 
 /// Standard atmospheric pressure (hPa). 
-/// Essential for future implementations of surface wave-air interface physics.
-pub const SEA_LEVEL_PRESSURE: f64 = 1013.25;
+pub const SEA_LEVEL_PRESSURE: f32 = 1013.25;
+pub const SEA_LEVEL_PRESSURE_F64: f64 = 1013.25;
 
 /// Based on FVM analysis for steady flow and low drag.
 pub const DRAG_COEFFICIENT: f32 = 0.04; 
@@ -20,158 +21,109 @@ pub const IDEAL_FLOW_VELOCITY: f32 = 5.0;
 // --- Hydrodynamic & Fluids Architecture Constants ---
 // =========================================================================
 
-/// Standard density of seawater at 15°C and 35 PSU salinity (kg/m^3).
-/// Critical for buoyancy, hydrodynamic drag vector calculations, and displacement.
 pub const SEAWATER_DENSITY: f32 = 1025.9;
-
-/// Kinematic viscosity of seawater at 15°C (m^2/s).
-/// Used in Reynolds number evaluation to scale turbulent boundary layer effects.
 pub const SEAWATER_KINEMATIC_VISCOSITY: f32 = 0.00000119;
-
-/// Gravitational acceleration constant (m/s^2).
-/// Governs Froude number scaling and Gerstner wave dispersion relations.
 pub const GRAVITY: f32 = 9.80665;
-
-/// Added Mass Coefficient for a slender/biomimetic USV hull configuration.
-/// Accounted for in transient acceleration phases to simulate fluid entrainment.
 pub const ADDED_MASS_COEFFICIENT: f32 = 0.08;
-
-/// Critical Reynolds Number for laminar-to-turbulent boundary layer transition.
-/// Triggers non-linear drag scaling and dynamic wake particle instantiation.
-pub const CRITICAL_REYNOLDS_NUMBER: f32 = 500000.0;
-
-/// Froude Number Limit for displacement-to-planing hull transition.
-/// Used to dynamically alter the wave-making drag coefficient as velocity scales.
+pub const CRITICAL_REYNOLDS_NUMBER: f32 = 500_000.0; // Added readability separator
 pub const CRITICAL_FROUDE_NUMBER: f32 = 0.4;
-
-/// Seawater Bulk Modulus at 15°C (Pa).
-/// Essential for high-fidelity acoustic sensor simulation and compressibility effects under high pressure.
-pub const SEAWATER_BULK_MODULUS: f64 = 2.34e9;
-
-/// Dynamic skin friction coefficient based on ITTC-57 correlation line.
-/// Simulates the baseline viscous resistance acting on the wetted surface area of the USV hull.
 pub const SKIN_FRICTION_COEFFICIENT: f32 = 0.0075;
 
+/// Seawater Bulk Modulus at 15°C (Pa).
+pub const SEAWATER_BULK_MODULUS: f32 = 2.34e9;
+pub const SEAWATER_BULK_MODULUS_F64: f64 = 2.34e9;
 
 // =========================================================================
 // --- Optical & Multispectral Attenuation Constants ---
 // =========================================================================
 
-/// Baseline attenuation coefficient for blue spectrum (470nm) in clear waters (m^-1).
-/// Dictates premium visibility constraints for camera sensor modeling.
 pub const BLUE_ATTENUATION_COEFFICIENT: f32 = 0.015;
-
-/// Baseline attenuation coefficient for red spectrum (650nm) in clear waters (m^-1).
-/// Simulates the rapid loss of red chromatic data in the first 5 meters of depth.
 pub const RED_ATTENUATION_COEFFICIENT: f32 = 0.35;
-
-/// Faraday Rotation Constant for water-based magneto-optic simulation.
-/// Governs the polarization plane rotation vector of light passing through local magnetic anomalies.
 pub const WATER_VERDET_CONSTANT: f32 = 0.0134; // rad / (T * m) at 589 nm
 
 // =========================================================================
-// ---Biomimetic Octopus-Evasion & Hydrofoil Constants ---
+// --- Biomimetic Octopus-Evasion & Hydrofoil Constants ---
 // =========================================================================
 
-/// Maximum propulsion force multiplier during a biomimetic "jet propulsion" maneuver.
-/// Modeled after cephalopod emergency evasion mechanics to simulate instant drag decoupling.
 pub const BIOMIMETIC_BURST_MULTIPLIER: f32 = 3.5;
-
-/// Thermal dissipation rate of the vessel hull when operating in stealth mode.
-/// Mimics biological thermoregulation to minimize infrared silhouette detection.
 pub const THERMAL_DISSIPATION_RATE: f32 = 0.12;
 
 // =========================================================================
 // --- Simulation Presets & Enums ---
 // =========================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Explicitly layout as u8 to reduce memory footprint down to 1 byte.
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OceanType {
-    /// Characterized by higher particulate matter and specific spectral absorption.
-    Aegean,
-    /// High clarity, low turbidity, favoring shorter (blue) wavelengths.
-    Caribbean,
-    /// NEW: Specific to high-latitude operations with distinct thermal gradient layers.
-    Baltic,
+    Aegean = 0,
+    Caribbean = 1,
+    Baltic = 2,
 }
 
 // =========================================================================
 // --- Dynamic Simulation State ---
 // =========================================================================
 
-#[derive(Resource, Debug, Clone)]
+/// Cache-line optimized layout. Fields are ordered by alignment size (f32 -> enum)
+/// to prevent memory padding gaps and maximize L1/L2 cache locality during ECS system queries.
+#[repr(C)]
+#[derive(Resource, Debug, Clone, PartialEq)]
 pub struct OceanSettings {
-    /// Selected geographical preset affecting spectral attenuation (Beer-Lambert).
-    pub ocean_type: OceanType,
-
-    /// Vertical wave displacement (m). Impacts IR and Visible silhouette distortion.
+    // 1. Core Hydrodynamic Scalars (4 bytes each)
     pub wave_amplitude: f32,
-    
-    /// Temporal frequency of wave oscillation (Hz).
     pub wave_frequency: f32,
+    pub vessel_speed: f32,
     
-    /// Global turbidity coefficient (m^-1). 
-    /// Direct multiplier for multispectral light extinction.
+    // 2. Physical/Chemical Parameters (4 bytes each)
     pub turbidity: f32,
-    
-    /// Salinity in Practical Salinity Units (PSU). 
-    /// Influences the calculated refractive index (IOR).
     pub salinity: f32,
-    
-    /// Surface water temperature (°C). 
-    /// Affects both optical density and thermodynamic sensor modeling.
     pub temperature: f32,
     
-    /// Real-time vessel velocity (m/s). 
-    /// Used for dynamic wake generation and optical flow calculations.
-    pub vessel_speed: f32,
-
-    // --- Multi-Physical Sensor Additions ---
-    
-    /// Real-time ambient light lux level at surface interface.
+    // 3. Multispectral Sensor Environment (4 bytes each)
     pub surface_lux: f32,
-
-    /// Depth matrix scalar (m). Calculated dynamically from the vessel's transform.
     pub current_depth: f32,
-
-    /// Vertical atmospheric temperature gradient (dT/dh) directly above the sea surface.
-    /// Used to simulate atmospheric refraction anomalies. Positive values represent 
-    /// severe temperature inversions that trigger "Superior Mirage" (Fata Morgana) phenomena, 
-    /// causing optical target position shifting and multispectral sensor signal bending.
     pub temp_gradient: f32,
+
+    // 4. Discriminant / Layout Boundary (1 byte)
+    pub ocean_type: OceanType,
 }
 
 impl Default for OceanSettings {
-    /// Default state initialized to Mediterranean/Aegean standards
-    /// to provide a balanced baseline for the optical attenuation testing.
+    #[inline] // Hint to compiler to inline this allocation at initialization sites
     fn default() -> Self {
         Self {
-            ocean_type: OceanType::Aegean,
-            wave_amplitude: 0.6,    // Optimized for procedural Gerstner stability
+            wave_amplitude: 0.6,    
             wave_frequency: 1.0,   
-            turbidity: 0.08,        // Typical Aegean particulate density
-            salinity: 38.5,         // Specific salinity for the Mediterranean basin
+            vessel_speed: 0.0,      
+            turbidity: 0.08,        
+            salinity: 38.5,        
             temperature: 18.0,     
-            vessel_speed: 0.0,      // Initialization state
-            surface_lux: 100000.0,  // Standard direct sunlight lumens
-            current_depth: 0.0,     // Surface initialization
+            surface_lux: 100_000.0,  
+            current_depth: 0.0,     
             temp_gradient: 0.0,
+            ocean_type: OceanType::Aegean,
         }
     }
 }
 
 // =========================================================================
-// --- NEW: Global Maritime Standards & Simulation Protocols (DNV / IHO / FMI) ---
+// --- Compile-Time Evaluation Helpers ---
 // =========================================================================
 
-/// DNV-RP-0513 Standard Baseline Reference.
-/// Governs Verification and Validation (V&V) profiles for Maritime Digital Twins.
+impl OceanSettings {
+    /// Pure compile-time or runtime calculation of baseline light extinction
+    /// using a simplified Beer-Lambert approximation before shader pass.
+    #[inline]
+    pub const fn compute_static_attenuation(base_coef: f32, turbidity: f32) -> f32 {
+        base_coef + turbidity
+    }
+}
+
+// =========================================================================
+// --- Global Maritime Standards & Simulation Protocols ---
+// =========================================================================
+
 pub const DNV_VV_COMPLIANCE_VERSION: &str = "2020-10";
-
-/// Functional Mock-up Interface (FMI 3.0) Standard Co-Simulation Identifier.
-/// Ensures the cyber-physical model inputs/outputs match global industrial exchange interfaces.
 pub const FMI_STANDARD_VERSION: &str = "3.0";
-
-/// IHO S-57 / S-100 Hydrographic Data Transfer Standard Multiplier.
-/// Mapped to constrain standard dynamic water column voxel attributes.
 pub const IHO_S100_COMPLIANCE_BASELINE: u32 = 100;
