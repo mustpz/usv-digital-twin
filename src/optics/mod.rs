@@ -23,8 +23,8 @@ impl Plugin for OpticsPlugin {
                 // PHASE 2: Feed the mutated state data directly into rendering / HUD outputs.
                 // Chaining individual systems in a flat layout guarantees that Bevy's scheduler
                 // enforces hard barriers between data mutations and GPU-adjacent asset updates.
+                // PHASE 2: Feed the mutated state data directly into rendering / HUD outputs.
                 render::render_optical_camouflage_system,
-                render::render_thermal_signature_system,
                 render::draw_stealth_hud_system,
             )
                 .chain(), // Absolute sequential enforcement: Phase 1 strictly executes BEFORE all Phase 2 systems.
