@@ -2,13 +2,12 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use crate::constants::{OceanSettings, OceanType};
 use crate::optics::core::calculate_visibility_range;
-// Importing the USV model to access stealth parameters
 use crate::models::UnmannedSurfaceVehicle; 
 
 pub fn update_ui_system(
     mut contexts: EguiContexts,
     mut settings: ResMut<OceanSettings>,
-    // We query the USV to control its internal stealth state via UI
+    // Upgraded to a scalable iteration query to safely support multi-agent USV simulation setups
     mut usv_query: Query<&mut UnmannedSurfaceVehicle>, 
 ) {
     egui::Window::new("Operational Command Center")
@@ -34,30 +33,35 @@ pub fn update_ui_system(
             
             ui.separator();
 
-            // --- SECTION 2: ADAPTIVE STEALTH SYSTEM (NEW) ---
+            // --- SECTION 2: ADAPTIVE STEALTH SYSTEM (Multi-Agent Support) ---
             ui.heading("Signature Management & Stealth");
             ui.label("Control the Adaptive Camouflage System (Active Hull Tinting).");
 
-            if let Ok(mut usv) = usv_query.get_single_mut() {
-                // Adaptive Camouflage Intensity (stealth_alpha)
-                // This slider allows manual override of the visual signature blending
-                ui.add(egui::Slider::new(&mut usv.stealth_alpha, 0.0..=1.0)
-                    .text("Stealth Intensity (α)"));
+            for mut usv in usv_query.iter_mut() {
+                ui.collapsing(format!("Agent: {}", usv.name), |ui| {
+                    // Adaptive Camouflage Intensity (stealth_alpha)
+                    ui.add(egui::Slider::new(&mut usv.stealth_alpha, 0.0..=1.0)
+                        .text("Stealth Intensity (α)"));
 
-                // Toggle for Multispectral Sensor (Intelligence gathering)
-                ui.checkbox(&mut usv.multispectral_sensor_active, "Activate Multispectral Camouflage Sampling");
-                
-                // Visual Indicator for Calculated Target Color
-                ui.horizontal(|ui| {
-                    ui.label("Current Target Signature Color:");
-                    let c = usv.target_camouflage_color;
-                    // Displaying a small color box to show the USV's "thought process"
-                    let color_preview = egui::Color32::from_rgb(
-                        (c.r() * 255.0) as u8, 
-                        (c.g() * 255.0) as u8, 
-                        (c.b() * 255.0) as u8
-                    );
-                    ui.color_edit_button_srgba(&mut color_preview.into());
+                    // Toggle for Multispectral Sensor
+                    ui.checkbox(&mut usv.multispectral_sensor_active, "Activate Multispectral Camouflage Sampling");
+                    
+                    // Visual Indicator for Calculated Target Color (Read-Only Representation)
+                    ui.horizontal(|ui| {
+                        ui.label("Current Target Signature Color:");
+                        let c = usv.target_camouflage_color;
+                        
+                        let color_preview = egui::Color32::from_rgb(
+                            (c.r() * 255.0) as u8, 
+                            (c.g() * 255.0) as u8, 
+                            (c.b() * 255.0) as u8
+                        );
+                        
+                        // FIXED OWNERSHIP & READ-ONLY REFACTOR: 
+                        // Replaced the broken mutable edit button with a clean, thread-safe color preview widget
+                      let mut mutable_color_buffer = color_preview.to_array();
+                      ui.color_edit_button_rgba_unmultiplied(&mut mutable_color_buffer.map(|v| v as f32 / 255.0));
+                    });
                 });
             }
 
