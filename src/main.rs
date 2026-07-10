@@ -14,18 +14,20 @@ mod biomimicry;
 mod bridge; 
 
 use telemetry::{stream_biomimetic_telemetry_system, TelemetryStreamConfig};
-
 use environment::{setup_ocean_environment, sync_ocean_material, OceanMaterial};
 use vehicle::{
     spawn_vehicle, 
     move_vehicle, 
     float_vehicle_system, 
-    sensor_sampling_system, // Bridge: Samples environment color
-    apply_camouflage_system // Visualization: Updates hull material
+    sensor_sampling_system, 
+    apply_camouflage_system 
 };
 use scene::{setup_scene, update_scene_system}; 
 use constants::OceanSettings; 
 use ui::update_ui_system;     
+
+// INGRESS PIPELINE IMPORTS
+use bridge::{telemetry_ingress_bridge_system, hardware_polling_bridge_system, TelemetryBridgeConfig, HardwareSensorEvent};
 
 fn main() {
     println!("--- USV Digital Twin: High-Fidelity Gerstner Surface Simulation ---");
@@ -49,15 +51,16 @@ fn main() {
         .add_plugins(MaterialPlugin::<OceanMaterial>::default())
         .add_plugins(optics::OpticsPlugin)
         
-        // 3. FINITE STATE MACHINE (FSM) REGISTRATION
+        // 3. FINITE STATE MACHINE (FSM) & INTER-PROCESS EVENTS REGISTRATION
         .init_state::<crate::biomimicry::EvasionMode>()
+        .add_event::<HardwareSensorEvent>() // Registers the thread-safe hardware event channel
         
-        // 4. GLOBAL RESOURCES & TELEMETRY STREAMER CONFIG
+        // 4. GLOBAL RESOURCES & TELEMETRY CONFIGURATIONS
         .init_resource::<OceanSettings>() 
+        .init_resource::<TelemetryBridgeConfig>() // Initializes the 10Hz hardware ingress timer
         .insert_resource(TelemetryStreamConfig {
             client: reqwest::Client::new(),
             api_url: "https://api.yourcontrolstation.com/v1/telemetry".to_string(),
-            // Stream telemetry packets at exactly 5Hz (Every 0.2 seconds) to avoid CPU throttling
             rate_limiter: Timer::from_seconds(0.2, TimerMode::Repeating),
         })
         
@@ -69,27 +72,32 @@ fn main() {
             spawn_vehicle 
         ))
         
-        // 6. UPDATE SYSTEMS (The Main Simulation Loop)
+        // 6. UPDATE SYSTEMS (The Deterministic Simulation Loop)
         .add_systems(Update, (
-            // A. INPUT PHASE: Capture UI commands first
+            // A. INPUT PHASE
             update_ui_system,
             
-            // B. PERCEPTION PHASE: USV samples the water color based on UI/Environment settings
+            // B. HARDWARE INGRESS PHASE (New): Poll physical buses and pipe data into the ECS event channel
+            hardware_polling_bridge_system.after(update_ui_system),
+            telemetry_ingress_bridge_system.after(hardware_polling_bridge_system),
+
+            // C. PERCEPTION PHASE: USV samples the water color based on UI/Environment settings
             sensor_sampling_system.after(update_ui_system),
             
-            // C. SYNC PHASE: Update ocean materials and atmospheric conditions
+            // D. SYNC PHASE: Update ocean materials and atmospheric conditions
             (update_scene_system, sync_ocean_material).after(update_ui_system),
 
-            // D. VISUALIZATION PHASE: Apply the sampled color to the USV's hull
+            // E. VISUALIZATION PHASE: Apply the sampled color to the USV's hull
             apply_camouflage_system.after(sensor_sampling_system),
             
-            // E. KINEMATICS PHASE: Calculate movement and buoyancy
+            // F. KINEMATICS PHASE: Calculate movement and buoyancy
             (move_vehicle, float_vehicle_system)
                 .chain() 
                 .after(sync_ocean_material),
                 
-            // F. DETERMINISTIC PROTECTION & TELEMETRY NETWORK LAYER
-            crate::biomimicry::calculate_biomimetic_evasion_system,
+            // G. DETERMINISTIC PROTECTION & TELEMETRY NETWORK LAYER
+            // Integrated seamlessly after the ingress bridge pipe evaluates safety boundaries
+            crate::biomimicry::calculate_biomimetic_evasion_system.after(telemetry_ingress_bridge_system),
             stream_biomimetic_telemetry_system.after(crate::biomimicry::calculate_biomimetic_evasion_system)
         ))
         
