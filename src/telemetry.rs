@@ -69,30 +69,27 @@ pub fn stream_biomimetic_telemetry_system(
             .unwrap_or_default()
             .as_millis() as u64;
 
-        // Construct the immutable data packet
-        let packet = UsvTelemetryData {
-            depth: current_depth,
-            speed: current_speed,
-            timestamp: current_timestamp,
-        };
+    // Construct the immutable data packet directly inside the frame
+let packet = UsvTelemetryData {
+    depth: current_depth,
+    speed: current_speed,
+    timestamp: current_timestamp,
+};
 
-        // Deep-clone references to thread-safe structures for async move closure injection
-        let async_client = config.client.clone();
-        let async_url = config.api_url.clone();
+let async_client = config.client.clone();
+let async_url = config.api_url.clone();
 
-        // 3. Spawning the background async thread worker (ZERO frame drops on Bevy's physical side)
-        task_pool.spawn(async move {
-            match send_telemetry_packet(async_client, async_url, packet).await {
-                Ok(payload) => {
-                    // Internal non-blocking logging using Bevy's structured trace layer
-                    trace!(target: "usv_project::telemetry", "Telemetry successfully emitted: {}", payload);
-                }
-                Err(err) => {
-                    // DETERMINISTIC PROTECTION LAYER (Survive Error Accumulation): 
-                    // Network timeouts or packet drops will NEVER drop or cascade errors into the physical hull integration loop.
-                    warn!(target: "usv_project::telemetry", "Telemetry network packet dropped: {}", err);
-                }
-            }
-        }).detach(); // Detach decouples the task lifespan from the execution block frame lifespan
+// Spawning the background async thread worker (Zero overhead on main thread)
+task_pool.spawn(async move {
+    // Serialization happens safely inside the background thread pool boundary, completely off the main thread!
+    match send_telemetry_packet(async_client, async_url, packet).await {
+        Ok(payload) => {
+            trace!(target: "usv_project::telemetry", "Telemetry successfully emitted: {}", payload);
+        }
+        Err(err) => {
+            warn!(target: "usv_project::telemetry", "Telemetry network packet dropped: {}", err);
+        }
+    }
+}).detach();
     }
 }
