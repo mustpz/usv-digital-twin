@@ -1,58 +1,86 @@
 use bevy::prelude::*;
-// Importing the decoupled telemetry layers and the core biomimetic state registers
-use crate::telemetry::{UsvTelemetryData}; 
 use crate::biomimicry::{ThreatVector, OctopodEvasionMatrix};
 
-/// Encapsulates the network client architecture and local endpoint configurations 
-/// within a global Bevy resource for centralized dependency injection.
-#[derive(Resource, Debug, Clone)]
-pub struct TelemetryBridgeConfig {
-    /// Non-blocking HTTP client thread pool manager for isolated asynchronous I/O execution
-    pub client: reqwest::Client,
-    /// Fully qualified local or air-gapped URI pointing to the hardware sensor distribution board
-    pub local_sensor_url: String,
+/// Real-time hardware telemetry packet received from physical sensor buses (IPC / UDP / Serial)
+#[derive(Event, Debug, Clone, Copy)]
+pub struct HardwareSensorEvent {
+    pub depth: f32,
+    pub speed: f32,
 }
 
-/// Bevy ECS system acting as a deterministic data bridge (Ingress Pipeline).
-/// It ingests raw telemetry metrics from internal hardware streams and adaptively converts 
-/// them into bio-inspired tactical threat evaluation coefficients.
+/// Encapsulates the network client architecture and local endpoint configurations 
+#[derive(Resource, Debug, Clone)]
+pub struct TelemetryBridgeConfig {
+    pub client: reqwest::Client,
+    pub local_sensor_url: String,
+    pub poll_timer: Timer, // Limits hardware polling to industrial standards (e.g., 10Hz)
+}
+
+impl Default for TelemetryBridgeConfig {
+    fn default() -> Self {
+        Self {
+            client: reqwest::Client::new(),
+            local_sensor_url: "http://127.0.0.1:8080/api/v1/sensors".to_string(),
+            // Poll physical hardware at exactly 10Hz to prevent bus saturation
+            poll_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+        }
+    }
+}
+
+/// Asynchronous Ingress Background Worker.
+/// In a real deployment, this system executes non-blocking I/O tasks (IPC sockets/HTTP)
+/// within Bevy's IoTaskPool and dispatches thread-safe Events into the ECS layer.
+pub fn hardware_polling_bridge_system(
+    time: Res<Time>,
+    mut config: ResMut<TelemetryBridgeConfig>,
+    mut sensor_events: EventWriter<HardwareSensorEvent>,
+) {
+    // Rate limit the hardware bus polling
+    if !config.poll_timer.tick(time.delta()).just_finished() {
+        return;
+    }
+
+    // -------------------------------------------------------------------------
+    // MIL-SPEC AIR-GAPPED HARDWARE SIMULATION INGESTION (Non-blocking)
+    // -------------------------------------------------------------------------
+    // Consuming IoTaskPool for async network fetch would happen here.
+    // Simulating deterministic hardware data insertion:
+    let simulated_hardware_depth: f32 = 12.5; 
+    let simulated_hardware_speed: f32 = 24.8;
+
+    sensor_events.send(HardwareSensorEvent {
+        depth: simulated_hardware_depth,
+        speed: simulated_hardware_speed,
+    });
+}
+
+/// Deterministic Data Bridge (Ingress Pipeline).
+/// Reacts exclusively to HardwareSensorEvents, completely eliminating frame-by-frame
+/// overhead and updating bio-inspired tactical threat evaluation coefficients reactively.
 pub fn telemetry_ingress_bridge_system(
-    config: Res<TelemetryBridgeConfig>,
+    mut sensor_events: EventReader<HardwareSensorEvent>,
     mut query: Query<(&mut ThreatVector, &OctopodEvasionMatrix)>,
 ) {
-    // -------------------------------------------------------------------------
-    // MIL-SPEC AIR-GAPPED HARDWARE SIMULATION INGESTION
-    // -------------------------------------------------------------------------
-    // In a deployed Unmanned Surface Vehicle (USV), this segment processes the local
-    // asynchronous task network or inter-process communication (IPC) sockets.
-    // Here, we simulate a sudden, highly critical shallow water or obstacle trajectory profile.
-    let simulated_hardware_depth: f32 = 12.5;  // Sudden critical shallow obstacle detected by hardware sensors (meters)
-    let simulated_hardware_speed: f32 = 24.8;  // Current telemetry velocity register read from the hull (m/s)
-    
-    // -------------------------------------------------------------------------
-    // THE CYBER-PHYSICAL BIOMIMETIC FEEDBACK LOOP
-    // -------------------------------------------------------------------------
-    for (mut threat, _matrix) in query.iter_mut() {
-        
-        // Operational Safety Envelope: Trigger a high-priority threat profile 
-        // if the hardware telemetry feeds breach the 15.0-meter safety boundary.
-        if simulated_hardware_depth < 15.0 {
+    // Process the event queue reactively
+    for event in sensor_events.read() {
+        for (mut threat, _matrix) in query.iter_mut() {
             
-            // Explicitly pipe the raw physical telemetry data into the bio-inspired tactical decision matrix
-            threat.distance = simulated_hardware_depth; 
-            threat.approach_velocity = simulated_hardware_speed;
-            
-            // Elevate the severity index to trigger the immediate cephalopod-inspired emergency state machine
-            threat.severity = 0.98; // Crucial threshold enforcement (> 0.8)
-            
-            #[cfg(debug_assertions)]
-            println!(
-                "🚨 [SYSTEM INTEGRATION BRIDGE] Critical Telemetry Triggered! Sensor Depth: {}m. Injecting parameters into OctopodEvasionMatrix.", 
-                simulated_hardware_depth
-            );
-        } else {
-            // Squelch and dampen the threat evaluation coefficient under nominal cruising telemetry profiles
-            threat.severity = 0.10;
+            // Operational Safety Envelope: Trigger high-priority defense if depth breaches 15.0m
+            if event.depth < 15.0 {
+                // Explicitly pipe raw physical telemetry into the bio-inspired tactical decision matrix
+                threat.distance = event.depth; 
+                threat.approach_velocity = event.speed;
+                threat.severity = 0.98; // Crucial threshold enforcement (> 0.8)
+                
+                #[cfg(debug_assertions)]
+                trace!(
+                    target: "systems::bridge",
+                    "Critical Telemetry Ingested! Depth: {}m, Speed: {}m/s. Injecting parameters.", 
+                    event.depth, event.speed
+                );
+            } else {
+                threat.severity = 0.10; // Squelch threat coefficient under nominal profiles
+            }
         }
     }
 }
