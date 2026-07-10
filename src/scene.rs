@@ -10,17 +10,17 @@ pub fn setup_scene(
     commands.insert_resource(ClearColor(Color::rgb(0.45, 0.65, 0.85)));
     
     // 2. AMBIENT LIGHTING (Global Illumination)
-    // Soft blue-tinted fill light to simulate sky reflection in shadowed wave areas.
+    // Refactored to realistic physical scales to prevent multi-spectral over-exposure bloom.
     commands.insert_resource(AmbientLight {
         color: Color::rgb(0.6, 0.75, 1.0), 
-        brightness: 1000.0, 
+        brightness: 120.0, // Standard physical baseline for soft sky-fill reflection
     });
 
     // 3. SOLAR IRRADIANCE (Primary Directional Light)
-    // For generating the "specular glints" and foam highlights on wave peaks.
+    // Calibrated for sharp specular glints and realistic shadow depth filtering.
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 25000.0, 
+            illuminance: 12000.0, // Calibrated sun intensity matching ambient registers
             shadows_enabled: true, 
             color: Color::rgb(1.0, 0.98, 0.92), 
             shadow_depth_bias: 0.05,
@@ -31,7 +31,7 @@ pub fn setup_scene(
         ..default()
     });
 
-    // 4. MARITIME ATMOSPHERICS (Volumetric Fog).
+    // 4. MARITIME ATMOSPHERICS (Volumetric Fog)
     commands.spawn(FogSettings {
         color: Color::rgb(0.55, 0.7, 0.8), 
         falloff: FogFalloff::Exponential { density: 0.0008 },
@@ -39,17 +39,26 @@ pub fn setup_scene(
     });
 }
 
-/// Dynamic system that links atmospheric fog density to ocean turbidity settings.
-/// Simulates how murky water often accompanies hazy meteorological conditions.
+/// Dynamic Reactive System linking atmospheric fog density to ocean turbidity settings.
+/// Leverages explicit `Changed<OceanSettings>` filters to fully eliminate redundant VRAM updates.
 pub fn update_scene_system(
     settings: Res<OceanSettings>,
     mut query_fog: Query<&mut FogSettings>,
 ) {
+    // REACTIVE GUARD: Only execute fog recalculation if environmental metrics drift
+    if !settings.is_changed() {
+        return;
+    }
+
+    let visibility_factor = (1.0 - settings.turbidity).max(0.1);
+    let next_density = 0.0015 / visibility_factor;
+
     for mut fog in query_fog.iter_mut() {
-        // As turbidity (murkiness) increases, atmospheric visibility decreases.
-        let visibility_factor = (1.0 - settings.turbidity).max(0.1);
-        fog.falloff = FogFalloff::Exponential { 
-            density: 0.0015 / visibility_factor 
-        };
+        // Only trigger mutation if a mathematical difference exists
+        if let FogFalloff::Exponential { density } = fog.falloff {
+            if (density - next_density).abs() > 0.00001 {
+                fog.falloff = FogFalloff::Exponential { density: next_density };
+            }
+        }
     }
 }
