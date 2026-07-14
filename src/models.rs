@@ -37,6 +37,10 @@ pub struct UnmannedSurfaceVehicle {
     // --- Propulsion & Hydrodynamics ---
     /// Integrated hydrodynamics module for real-time performance tracking.
     pub hydrodynamics: Hydrodynamics,
+
+    /// Represents the thermal signature intensity (IR Bloom) emitted by propulsion systems.
+    /// Range: 0.0 (Ambient/Cold) to 1.0 (Maximum Exhaust Thermal Emission).
+    pub infrared_signature: f32,
 }
 
 impl UnmannedSurfaceVehicle {
@@ -62,6 +66,9 @@ impl UnmannedSurfaceVehicle {
 
             // Initializing hydrodynamics with default steady-flow assumptions.
             hydrodynamics: Hydrodynamics::default(),
+
+            // Starts at a default ambient state (0.0) representing cold startup.
+            infrared_signature: 0.0,
         }
     }
 

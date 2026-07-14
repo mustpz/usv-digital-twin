@@ -10,27 +10,46 @@ use crate::optics::core::MultispectralCamouflage;
 /// to prevent resource modification race conditions and eliminate redundant VRAM uploads.
 pub fn render_optical_camouflage_system(
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    // Added track-state query to detect changes in stealth alpha, infrared, and sensor modes
     camo_query: Query<(&MultispectralCamouflage, &Handle<StandardMaterial>), Changed<MultispectralCamouflage>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    // Check if the thermal (IR) imaging channel is triggered by the operator
     let flir_active = keyboard_input.pressed(KeyCode::KeyI);
 
     for (camo, material_handle) in camo_query.iter() {
         if let Some(material) = materials.get_mut(material_handle) {
             
             if flir_active {
-                // FLIR Mode: Dynamic spectral shift between cold (Blue) and hot (Red) channels
+                // --- ACTIVE THERMAL (FLIR) IMAGING MODE ---
+                // Map the camera_mode to 1.0 (Thermal Active)
+                // We pass the parameters utilizing standard material properties as a pipeline bridge:
+                // base_color.r -> mapped to engine heat signature
+                // base_color.g -> mapped to system camera mode trigger (1.0 = Thermal)
+                // base_color.b -> mapped to cold structural signature
                 let heat = camo.infrared_signature;
-                material.base_color = Color::rgba_linear(heat, 0.2, 1.0 - heat, camo.visible_reflectivity);
-                material.emissive = Color::rgba_linear(heat * 0.5, 0.0, 0.0, 1.0);
-                // Scatter specular highlights intensely during thermal bloom
-                material.perceptual_roughness = 0.5; 
-            } else {
-                // Baseline Optical Active Camouflage State
-                // Smoothly lower reflectivity and scale roughness to scatter specular reflections realistically
-                material.base_color = Color::rgb(0.9, 0.9, 1.0); // Maintain Industrial Base Gray structural hull
-                material.base_color.set_a(camo.visible_reflectivity);
                 
+                material.base_color = Color::rgba_linear(
+                    heat,        // R: Thermal bloom (hot channel)
+                    1.0,         // G: Camera mode override flag (1.0 = IR Camera Active)
+                    1.0 - heat,  // B: Ambient/cold channel interpolation
+                    camo.visible_reflectivity // A: Stealth alpha factor for blackbody suppression
+                );
+                
+                material.emissive = Color::rgba_linear(heat * 0.5, 0.0, 0.0, 1.0);
+                material.perceptual_roughness = 0.5; // Scatter specular highlights during thermal bloom
+           } else {
+                // --- NOMINAL OPTICAL ACTIVE CAMOUFLAGE MODE ---
+                // Maintain Industrial Base Gray structural hull on visible light spectrum
+                // G channel is set to 0.0 (Normal Visible Light mode flag)
+                // A channel represents our adaptive visible reflectivity (stealth_alpha)
+                material.base_color = Color::rgba_linear(
+                    0.9,                       // R: Base gray
+                    0.0,                       // G: Camera mode flag = 0.0 (Normal Visible Light)
+                    1.0,                       // B: Base gray
+                    camo.visible_reflectivity  // A: Stealth alpha factor
+                );
+
                 material.emissive = Color::rgba_linear(0.0, 0.0, 0.0, 0.0);
                 material.perceptual_roughness = 0.1 + (1.0 - camo.visible_reflectivity) * 0.8;
             }

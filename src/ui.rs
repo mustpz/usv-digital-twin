@@ -46,6 +46,24 @@ pub fn update_ui_system(
                     // Toggle for Multispectral Sensor
                     ui.checkbox(&mut usv.multispectral_sensor_active, "Activate Multispectral Camouflage Sampling");
                     
+                    ui.add_space(5.0);
+                    
+                    // --- SECTION 2B: EMULATED SENSORS & IR THERMAL SIGNATURE ---
+                    ui.label("Multispectral Sensor Controls:");
+                    
+                    // Manual trigger for FLIR (Thermal) Imaging Camera Mode
+                    let mut thermal_active = usv.multispectral_sensor_active;
+                    if ui.checkbox(&mut thermal_active, "Toggle Thermal (FLIR) Imaging").changed() {
+                        usv.multispectral_sensor_active = thermal_active;
+                    }
+
+                    // Adjustable Slider to directly manipulate the physical engine heat signature
+                    // Safely mutates the newly defined infrared_signature register within UnmannedSurfaceVehicle
+                    ui.add(egui::Slider::new(&mut usv.infrared_signature, 0.0..=1.0)
+                        .text("Engine Heat (IR Signature)"));
+
+                    ui.add_space(5.0);
+
                     // Visual Indicator for Calculated Target Color (Read-Only Representation)
                     ui.horizontal(|ui| {
                         ui.label("Current Target Signature Color:");
@@ -59,8 +77,8 @@ pub fn update_ui_system(
                         
                         // FIXED OWNERSHIP & READ-ONLY REFACTOR: 
                         // Replaced the broken mutable edit button with a clean, thread-safe color preview widget
-                      let mut mutable_color_buffer = color_preview.to_array();
-                      ui.color_edit_button_rgba_unmultiplied(&mut mutable_color_buffer.map(|v| v as f32 / 255.0));
+                        let mut mutable_color_buffer = color_preview.to_array();
+                        ui.color_edit_button_rgba_unmultiplied(&mut mutable_color_buffer.map(|v| v as f32 / 255.0));
                     });
                 });
             }
