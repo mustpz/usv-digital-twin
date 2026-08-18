@@ -51,8 +51,7 @@ fn main() {
         .add_plugins(MaterialPlugin::<OceanMaterial>::default())
         .add_plugins(optics::OpticsPlugin)
         
-        // 3. FINITE STATE MACHINE (FSM) & INTER-PROCESS EVENTS REGISTRATION
-        .init_state::<crate::biomimicry::EvasionMode>()
+        // 3. INTER-PROCESS EVENTS REGISTRATION
         .add_event::<HardwareSensorEvent>() // Registers the thread-safe hardware event channel
         
         // 4. GLOBAL RESOURCES & TELEMETRY CONFIGURATIONS
@@ -77,7 +76,7 @@ fn main() {
             // A. INPUT PHASE
             update_ui_system,
             
-            // B. HARDWARE INGRESS PHASE (New): Poll physical buses and pipe data into the ECS event channel
+            // B. HARDWARE INGRESS PHASE: Poll physical buses and pipe data into the ECS event channel
             hardware_polling_bridge_system.after(update_ui_system),
             telemetry_ingress_bridge_system.after(hardware_polling_bridge_system),
 
@@ -96,7 +95,6 @@ fn main() {
                 .after(sync_ocean_material),
                 
             // G. DETERMINISTIC PROTECTION & TELEMETRY NETWORK LAYER
-            // Integrated seamlessly after the ingress bridge pipe evaluates safety boundaries
             crate::biomimicry::calculate_biomimetic_evasion_system.after(telemetry_ingress_bridge_system),
             stream_biomimetic_telemetry_system.after(crate::biomimicry::calculate_biomimetic_evasion_system)
         ))

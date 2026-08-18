@@ -21,7 +21,8 @@ impl fmt::Display for ControlLoopError {
     }
 }
 
-#[derive(States, Debug, Default, Hash, PartialEq, Eq, Clone, Copy)]
+/// Converted from global Resource/States into an Entity Component to support decoupled Multi-Agent state machines.
+#[derive(Component, Debug, Default, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum EvasionMode {
     #[default]
     Idle,
@@ -70,27 +71,27 @@ impl ThreatVector {
 
 pub fn calculate_biomimetic_evasion_system(
     mut query: Query<(
+        Entity,
         &ThreatVector,
         &mut OctopodEvasionMatrix,
         &HullDynamics,
         &mut Velocity,
         &mut Transform,
+        &mut EvasionMode,
     )>,
-    current_state: Res<State<EvasionMode>>,
-    mut next_state: ResMut<NextState<EvasionMode>>,
     time: Res<Time>,
 ) {
     let dt = time.delta_seconds();
     if dt <= 0.0 { return; }
 
-    let active_state = *current_state.get();
+    for (entity, threat, mut matrix, hull, mut velocity, mut transform, mut evasion_mode) in query.iter_mut() {
+        let active_state = *evasion_mode;
 
-    for (threat, mut matrix, hull, mut velocity, mut transform) in query.iter_mut() {
         // --- STEP 1: VERIFICATION LAYER & CONSTRAINT ENFORCEMENT ---
         if let Err(err) = threat.verify_integrity() {
-            error!(target: "agentic_harness::verification", "State validation failed: {}", err);
+            error!(target: "agentic_harness::verification", "[Entity {:?}] State validation failed: {}", entity, err);
             if active_state != EvasionMode::Idle {
-                next_state.set(EvasionMode::Idle);
+                *evasion_mode = EvasionMode::Idle;
             }
             continue;
         }
@@ -134,14 +135,14 @@ pub fn calculate_biomimetic_evasion_system(
             target_mode = EvasionMode::Idle;
         }
 
-        // --- STEP 3: REACTIVE STATE MACHINE SYNC ---
+        // --- STEP 3: REACTIVE LOCAL STATE MACHINE SYNC ---
         if active_state != target_mode {
             info!(
                 target: "agentic_harness::state_machine", 
-                "Transitioning state registry from {:?} -> {:?}", 
-                active_state, target_mode
+                "[Entity {:?}] Transitioning evasion state from {:?} -> {:?}", 
+                entity, active_state, target_mode
             );
-            next_state.set(target_mode);
+            *evasion_mode = target_mode;
         }
 
         // --- STEP 4: FLUID DYNAMICS & NEWTONIAN INTEGRATION ---
@@ -162,7 +163,7 @@ pub fn calculate_biomimetic_evasion_system(
 
         // Guard against mathematical divergence during deep execution loops
         if acceleration.length() > DIVERGENT_ACCELERATION_LIMIT {
-            warn!(target: "agentic_harness::diagnostics", "{}", ControlLoopError::DivergentAcceleration);
+            warn!(target: "agentic_harness::diagnostics", "[Entity {:?}] {}", entity, ControlLoopError::DivergentAcceleration);
             velocity.0 *= 0.5; 
             continue;
         }

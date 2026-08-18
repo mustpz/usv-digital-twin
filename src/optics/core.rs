@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use crate::constants::{OceanSettings, OceanType};
+use crate::biomimicry::EvasionMode;
 
 // ============================================================================
 // 1. MULTISPECTRAL CAMOUFLAGE & ATMOSPHERIC ANOMALY ECS COMPONENTS
@@ -47,9 +48,7 @@ pub fn calculate_atmospheric_refraction(
     let deviation_angle = (distance_to_target * dn_dh).abs();
 
     // MATHEMATICAL GUARD: Small-angle approximation (tan(theta) ≈ theta) 
-    // Completely eliminates infinite/NaN traps of raw tangent calculations in extreme conditions.
     let vertical_offset = distance_to_target * deviation_angle;
-
     let shape_distortion = (settings.temp_gradient * 0.15) * (distance_to_target * 0.001);
 
     AtmosphericMirageEffect {
@@ -165,40 +164,39 @@ pub fn calculate_visibility_range(turbidity: f32) -> f32 {
 // ============================================================================
 
 /// Optimized Adaptive Camouflage System.
-/// Implements state change detection filters and computational anchors 
-/// to fully prevent unnecessary frame-by-frame VRAM mutations.
+/// Queries EvasionMode directly as an Entity Component to support multi-agent systems cleanly.
 pub fn update_biomimetic_camouflage(
     time: Res<Time>,
     ocean_settings: Res<OceanSettings>,
-    evasion_state: Res<State<crate::biomimicry::EvasionMode>>, 
     mut camo_query: Query<(
         &mut MultispectralCamouflage, 
         &Transform, 
+        Option<&EvasionMode>,
         Option<&mut AtmosphericMirageEffect>
     )>,
 ) {
     let visibility_limit = calculate_visibility_range(ocean_settings.turbidity);
     let biological_adaptation_speed = 1.8 * time.delta_seconds();
-    let current_evasion_mode = *evasion_state.get();
     let elapsed_time = time.elapsed_seconds();
 
-    for (mut camo, transform, mirage_opt) in camo_query.iter_mut() {
+    for (mut camo, transform, evasion_opt, mirage_opt) in camo_query.iter_mut() {
         let vehicle_depth = (-transform.translation.y).max(0.0);
+        let current_evasion_mode = evasion_opt.copied().unwrap_or(EvasionMode::Idle);
         
         let mut target_visible = if visibility_limit < 10.0 { 0.05 } else { (0.1 + (vehicle_depth * 0.02)).min(0.4) };
         let mut target_ir = if ocean_settings.temperature < 15.0 { 0.3 } else { 0.6 };
 
         match current_evasion_mode {
-            crate::biomimicry::EvasionMode::JetPropulsion => {
+            EvasionMode::JetPropulsion => {
                 target_visible *= 0.5; 
                 target_ir *= 0.4;      
             },
-            crate::biomimicry::EvasionMode::InkCloudDecoy => {
+            EvasionMode::InkCloudDecoy => {
                 target_visible = 0.01; 
                 target_ir = 0.1;       
             },
-            crate::biomimicry::EvasionMode::ColregHeadOnAlterCourseStarboard |
-            crate::biomimicry::EvasionMode::ColregGiveWayCrossing => {
+            EvasionMode::ColregHeadOnAlterCourseStarboard |
+            EvasionMode::ColregGiveWayCrossing => {
                 target_visible *= 0.8; 
             },
             _ => {} 
@@ -211,8 +209,6 @@ pub fn update_biomimetic_camouflage(
         let wave_clutter_factor = calculate_procedural_wave_height_vectorized(transform.translation.xz(), elapsed_time, 3);
         let next_rcs = (0.2_f32 + (wave_clutter_factor.abs() * 0.1_f32)).clamp(0.1_f32, 0.8_f32);
 
-        // MUTATION GUARD: Only trigger explicit component mutations if floating point delta variance exists.
-        // Bypasses VRAM upload pipeline starvation completely when signatures stabilize.
         if (camo.visible_reflectivity - next_visible).abs() > 0.0001 
             || (camo.infrared_signature - next_ir).abs() > 0.0001 
             || (camo.radar_cross_section - next_rcs).abs() > 0.0001 

@@ -4,6 +4,9 @@ use crate::constants::{
 };
 // CENTRALIZED DATA INJECTION: Pipes the newly optimized structures directly from models.rs
 use crate::models::UnmannedSurfaceVehicle; 
+use crate::biomimicry::{
+    EvasionMode, ThreatVector, OctopodEvasionMatrix, HullDynamics, Velocity
+};
 
 // --- PRE-NORMALIZED GERSTNER DIRECTION VECTORS (Zero Runtime Cast) ---
 const WAVE_DIR_1: Vec2 = Vec2::new(0.98058, 0.19611);  
@@ -33,6 +36,26 @@ pub fn spawn_vehicle(
         Vehicle, 
         UnmannedSurfaceVehicle::new("Strategic_USV_Unit"),
         Name::new("Strategic_USV_Unit"),
+        // MULTI-AGENT BIOMIMICRY & EVASION REGISTERS
+        EvasionMode::default(),
+        ThreatVector {
+            source_id: 0,
+            direction: Vec3::ZERO,
+            distance: 999.0,
+            approach_velocity: 0.0,
+            severity: 0.0,
+            target_heading: Vec3::Z,
+        },
+        OctopodEvasionMatrix {
+            jet_propulsion_force: 45.0,
+            ink_decoy_cooldown: 0.0,
+            body_morph_drag_coeff: 1.0,
+        },
+        HullDynamics {
+            mass: 120.0,
+            baseline_drag_area: 0.85,
+        },
+        Velocity::default(),
     ));
 }
 
