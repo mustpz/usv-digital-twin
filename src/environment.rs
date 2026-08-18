@@ -3,25 +3,29 @@ use bevy::reflect::TypePath;
 use bevy::render::render_resource::*;
 use crate::constants::OceanSettings;
 
-/// GPU uniform padding requirements (std140 layout compliance).
-/// Combines independent f32 metrics into unified vector blocks 
-/// to eliminate memory misalignment and minimize buffer upload overhead.
+/// Combined GPU Uniform Buffer adhering strictly to std140 layout.
+/// Packaged into 16-byte aligned vector blocks to prevent driver-specific memory misalignment.
+#[derive(ShaderType, Debug, Clone, Copy)]
+pub struct OceanUniforms {
+    /// Combined structural wave properties:
+    /// x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
+    pub wave_properties: Vec4,
+
+    /// Combined environmental optics & physics:
+    /// x: temp_gradient (optical ray bending), yzw: explicit 16-byte alignment padding
+    pub env_physics: Vec4,
+}
+
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct OceanMaterial {
-    /// Combined structural properties:
-    /// x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
+    /// Consolidated primary uniform block at binding(0)
     #[uniform(0)]
-    pub wave_properties: Vec4,
-    
-    /// Combined environmental physics properties:
-    /// x: temp_gradient (optical ray bending), yzw: internal padding for 16-byte boundary
-    #[uniform(0)]
-    pub env_physics: Vec4,
+    pub uniforms: OceanUniforms,
 
-    #[uniform(1)] 
+    #[uniform(1)]
     pub deep_water_color: Color,
 
-    #[texture(2)] 
+    #[texture(2)]
     #[sampler(3)]
     pub water_normal: Handle<Image>,
 }
@@ -36,10 +40,10 @@ pub fn setup_ocean_environment(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<OceanMaterial>>,
-    asset_server: Res<AssetServer>, 
+    asset_server: Res<AssetServer>,
 ) {
     /* CRITICAL MESH OPTIMIZATION:
-       Gerstner surface wave vectors require a massive vertex density matrix to render sharp crests.
+       Gerstner surface wave vectors require high vertex density to render sharp crests.
        Maintaining plane subdivisions at 400 to prevent edge distortion during dynamic macro-oscillations.
     */
     let ocean_mesh = meshes.add(
@@ -48,14 +52,16 @@ pub fn setup_ocean_environment(
             subdivisions: 400,
         })
     );
-   
+
     let water_normal_handle = asset_server.load("textures/water_normal.png");
 
     let ocean_material = materials.add(OceanMaterial {
-        // x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
-        wave_properties: Vec4::new(0.1, 1.0, 0.2, 0.0),
-        // x: temp_gradient, yzw: padding
-        env_physics: Vec4::new(0.0, 0.0, 0.0, 0.0), 
+        uniforms: OceanUniforms {
+            // x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
+            wave_properties: Vec4::new(0.1, 1.0, 0.2, 0.0),
+            // x: temp_gradient, yzw: std140 16-byte padding
+            env_physics: Vec4::new(0.0, 0.0, 0.0, 0.0),
+        },
         deep_water_color: Color::rgb(0.01, 0.05, 0.1),
         water_normal: water_normal_handle,
     });
@@ -72,7 +78,7 @@ pub fn setup_ocean_environment(
 }
 
 /// Change-Detection Optimized Sync System.
-/// Leverages Bevy's change detection (`Changed<OceanSettings>`) to completely bypass 
+/// Leverages Bevy's change detection (`Changed<OceanSettings>`) to completely bypass
 /// unnecessary VRAM buffer uploads unless explicit environment state modification occurs.
 pub fn sync_ocean_material(
     settings: Res<OceanSettings>,
@@ -80,21 +86,19 @@ pub fn sync_ocean_material(
     mut materials: ResMut<Assets<OceanMaterial>>,
 ) {
     let time_seconds = time.elapsed_seconds();
-    
-    // Check if global settings actually triggered a change event
     let settings_changed = settings.is_changed();
 
     for (_, material) in materials.iter_mut() {
-        // Time must update every frame dynamically
-        material.wave_properties.w = time_seconds;
+        // Time updates continuously
+        material.uniforms.wave_properties.w = time_seconds;
 
-        // Reactive update: Only touch heavy uniform structures if state layer changed
+        // Reactive update: Mutate uniform buffer parameters only when settings drift
         if settings_changed {
-            material.wave_properties.x = settings.turbidity;
-            material.wave_properties.y = settings.wave_amplitude;
-            material.wave_properties.z = settings.wave_frequency;
-            
-            material.env_physics.x = settings.temp_gradient; 
+            material.uniforms.wave_properties.x = settings.turbidity;
+            material.uniforms.wave_properties.y = settings.wave_amplitude;
+            material.uniforms.wave_properties.z = settings.wave_frequency;
+
+            material.uniforms.env_physics.x = settings.temp_gradient;
 
             let base_color = match settings.ocean_type {
                 crate::constants::OceanType::Aegean => Color::rgb(0.0, 0.67, 0.63),

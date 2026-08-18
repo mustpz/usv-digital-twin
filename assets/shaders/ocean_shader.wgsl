@@ -1,13 +1,13 @@
 #import bevy_pbr::mesh_view_bindings::view
 
-struct OceanParams {
-    turbidity: f32,
-    wave_amplitude: f32,
-    wave_frequency: f32,
-    time: f32,
+struct OceanUniforms {
+    // x: turbidity, y: wave_amplitude, z: wave_frequency, w: time
+    wave_properties: vec4<f32>,
+    // x: temp_gradient, yzw: 16-byte std140 padding
+    env_physics: vec4<f32>,
 };
 
-@group(2) @binding(0) var<uniform> material: OceanParams;
+@group(2) @binding(0) var<uniform> material: OceanUniforms;
 @group(2) @binding(1) var<uniform> deep_water_color: vec4<f32>; 
 @group(2) @binding(2) var water_normal_texture: texture_2d<f32>;
 @group(2) @binding(3) var water_normal_sampler: sampler;
@@ -37,9 +37,10 @@ fn vertex(@location(0) position: vec3<f32>) -> VertexOutput {
     var out: VertexOutput;
     var final_pos = position;
     
-    let time = material.time;
-    let amp = material.wave_amplitude;
-    let freq = material.wave_frequency * 0.4;
+    let turbidity = material.wave_properties.x;
+    let amp = material.wave_properties.y;
+    let freq = material.wave_properties.z * 0.4;
+    let time = material.wave_properties.w;
     
     let w1 = gerstner_wave(position.xz, vec2<f32>(1.0, 0.2), 0.3 * amp, freq, time);
     let w2 = gerstner_wave(position.xz, vec2<f32>(-0.7, 0.9), 0.2 * amp, freq * 1.5, time * 1.2);
@@ -62,6 +63,11 @@ fn vertex(@location(0) position: vec3<f32>) -> VertexOutput {
 
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
+    let turbidity = material.wave_properties.x;
+    let wave_amp = material.wave_properties.y;
+    let time = material.wave_properties.w;
+    let temp_gradient = material.env_physics.x;
+
     let view_dir = normalize(view.world_position - input.world_position);
     let sun_dir = normalize(vec3<f32>(1.0, 1.0, 1.0));
     
@@ -69,7 +75,7 @@ fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
     let fade = clamp(1.0 - (pixel_dist / 350.0), 0.0, 1.0);
     
     // Triple Noise Overlay
-    let time_val = material.time * 0.03;
+    let time_val = time * 0.03;
     let uv1 = input.world_position.xz * 0.02 + vec2<f32>(time_val * 0.2, time_val * 0.1);
     let uv2 = input.world_position.xz * 0.05 - vec2<f32>(time_val * 0.3, -time_val * 0.2);
     let uv3 = input.world_position.xz * 0.15 + vec2<f32>(0.0, time_val * 0.5);
@@ -81,26 +87,22 @@ fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
     let combined_nm = normalize((nm1 + nm2 + nm3) - 1.5);
     let final_normal = normalize(input.world_normal + (combined_nm * 0.2 * fade));
 
-   
-    let depth_factor = clamp((input.world_position.y + material.wave_amplitude) / (material.wave_amplitude * 2.0 + 0.01), 0.0, 1.0);
+    let depth_factor = clamp((input.world_position.y + wave_amp) / (wave_amp * 2.0 + 0.01), 0.0, 1.0);
     
-   
-    let k = material.turbidity * 4.0;
+    let k = turbidity * 4.0;
     let extinction = exp(-k * (1.0 - depth_factor));
     
-  
     let scattering_color = vec3<f32>(0.05, 0.1, 0.05); 
     
     let shallow_color = deep_water_color.rgb + vec3<f32>(0.1, 0.25, 0.3);
     let base_water = mix(deep_water_color.rgb, shallow_color, depth_factor);
     
-    
-    var water_color = mix(base_water * extinction, scattering_color, material.turbidity * 0.6);
+    var water_color = mix(base_water * extinction, scattering_color, turbidity * 0.6);
     
     let foam_threshold = 0.65; 
     let foam_mask = clamp((input.crest_factor - foam_threshold) * 5.0, 0.0, 1.0);
     let foam_color = vec3<f32>(0.9, 0.95, 1.0); 
-    water_color = mix(water_color, foam_color, foam_mask * (1.0 - material.turbidity));
+    water_color = mix(water_color, foam_color, foam_mask * (1.0 - turbidity));
 
     let fresnel = 0.02 + (0.98) * pow(1.0 - max(dot(final_normal, view_dir), 0.0), 5.0);
     let half_vec = normalize(sun_dir + view_dir);
@@ -109,7 +111,7 @@ fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
     let sky_color = vec3<f32>(0.5, 0.7, 1.0);
     var final_color = mix(water_color, sky_color, fresnel * 0.5);
    
-    final_color += (vec3<f32>(1.0, 0.9, 0.8) * spec * (1.0 - material.turbidity));
+    final_color += (vec3<f32>(1.0, 0.9, 0.8) * spec * (1.0 - turbidity));
 
     let fog_dist = length(input.world_position.xz) * 0.0008;
     let final_with_fog = mix(final_color, vec3<f32>(0.5, 0.6, 0.7), clamp(fog_dist, 0.0, 1.0));
