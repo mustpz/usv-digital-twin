@@ -2,19 +2,82 @@ use bevy::prelude::*;
 use crate::constants::{
     OceanSettings, OceanType, GRAVITY, CRITICAL_FROUDE_NUMBER, DRAG_COEFFICIENT, SEAWATER_DENSITY
 };
-// CENTRALIZED DATA INJECTION: Pipes the newly optimized structures directly from models.rs
 use crate::models::UnmannedSurfaceVehicle; 
 use crate::biomimicry::{
     EvasionMode, ThreatVector, OctopodEvasionMatrix, HullDynamics, Velocity
 };
 
-// --- PRE-NORMALIZED GERSTNER DIRECTION VECTORS (Zero Runtime Cast) ---
-const WAVE_DIR_1: Vec2 = Vec2::new(0.98058, 0.19611);  
-const WAVE_DIR_2: Vec2 = Vec2::new(-0.61394, 0.78935); 
-const WAVE_DIR_3: Vec2 = Vec2::new(0.24253, -0.97014); 
-
 #[derive(Component)]
 pub struct Vehicle;
+
+/// 6-Degrees-of-Freedom (6-DOF) kinematic state descriptor.
+#[derive(Component, Debug, Clone)]
+pub struct RigidBody6DOF {
+    pub linear_velocity: Vec3,      // World-space translational velocity [u, v, w]
+    pub angular_velocity: Vec3,     // Body-frame rotational velocity [p (roll), q (pitch), r (yaw)]
+    pub linear_acceleration: Vec3,  // World-space translational acceleration
+    pub angular_acceleration: Vec3, // Body-frame rotational acceleration
+}
+
+impl Default for RigidBody6DOF {
+    fn default() -> Self {
+        Self {
+            linear_velocity: Vec3::ZERO,
+            angular_velocity: Vec3::ZERO,
+            linear_acceleration: Vec3::ZERO,
+            angular_acceleration: Vec3::ZERO,
+        }
+    }
+}
+
+/// Structural and mass-distribution parameters for seakeeping analysis.
+#[derive(Component, Debug, Clone)]
+pub struct HydrostaticProperties {
+    pub mass: f32,                          // Vessel dry displacement mass (kg)
+    pub inertia_tensor: Vec3,               // Principal moments of inertia [Ixx, Iyy, Izz] (kg*m^2)
+    pub center_of_gravity: Vec3,            // Center of gravity (CG) relative to model datum
+    pub metacentric_height: f32,            // Transverse metacentric height (GM_T) in meters
+    pub buoyancy_cells: [BuoyancyCell; 8],   // Discretized volumetric hull cells
+}
+
+/// Volumetric cell definition for localized hydrostatic and wave-interaction sampling.
+#[derive(Debug, Clone, Copy)]
+pub struct BuoyancyCell {
+    pub local_offset: Vec3, // Local position vector relative to vehicle datum
+    pub volume: f32,        // Cell volume displacement capacity (m^3)
+}
+
+impl Default for HydrostaticProperties {
+    fn default() -> Self {
+        let total_mass = 120.0;
+        // Equivalent block inertia approximations (w: 1.0, h: 0.5, l: 2.0)
+        let i_xx = (1.0 / 12.0) * total_mass * (0.5 * 0.5 + 2.0 * 2.0); // Roll inertia
+        let i_yy = (1.0 / 12.0) * total_mass * (1.0 * 1.0 + 2.0 * 2.0); // Yaw inertia
+        let i_zz = (1.0 / 12.0) * total_mass * (1.0 * 1.0 + 0.5 * 0.5); // Pitch inertia
+
+        // 8-point spatial discretization across hull boundaries
+        let buoyancy_cells = [
+            // Bow section
+            BuoyancyCell { local_offset: Vec3::new( 0.35, -0.15,  0.75), volume: 0.035 },
+            BuoyancyCell { local_offset: Vec3::new(-0.35, -0.15,  0.75), volume: 0.035 },
+            BuoyancyCell { local_offset: Vec3::new( 0.35,  0.10,  0.75), volume: 0.020 },
+            BuoyancyCell { local_offset: Vec3::new(-0.35,  0.10,  0.75), volume: 0.020 },
+            // Stern section
+            BuoyancyCell { local_offset: Vec3::new( 0.35, -0.15, -0.75), volume: 0.035 },
+            BuoyancyCell { local_offset: Vec3::new(-0.35, -0.15, -0.75), volume: 0.035 },
+            BuoyancyCell { local_offset: Vec3::new( 0.35,  0.10, -0.75), volume: 0.020 },
+            BuoyancyCell { local_offset: Vec3::new(-0.35,  0.10, -0.75), volume: 0.020 },
+        ];
+
+        Self {
+            mass: total_mass,
+            inertia_tensor: Vec3::new(i_xx, i_yy, i_zz),
+            center_of_gravity: Vec3::new(0.0, -0.05, 0.0),
+            metacentric_height: 0.28,
+            buoyancy_cells,
+        }
+    }
+}
 
 pub fn spawn_vehicle(
     mut commands: Commands,
@@ -36,7 +99,10 @@ pub fn spawn_vehicle(
         Vehicle, 
         UnmannedSurfaceVehicle::new("Strategic_USV_Unit"),
         Name::new("Strategic_USV_Unit"),
-        // MULTI-AGENT BIOMIMICRY & EVASION REGISTERS
+        // 6-DOF RIGID BODY DYNAMICS STATE
+        RigidBody6DOF::default(),
+        HydrostaticProperties::default(),
+        // BIOMIMICRY & TACTICAL EVASION COMPONENTS
         EvasionMode::default(),
         ThreatVector {
             source_id: 0,
@@ -59,7 +125,7 @@ pub fn spawn_vehicle(
     ));
 }
 
-/// Change-Detection Reactive Sensor System.
+/// Change-Detection Reactive Environmental Sensor System.
 pub fn sensor_sampling_system(
     ocean_settings: Res<OceanSettings>,
     mut usv_query: Query<&mut UnmannedSurfaceVehicle>,
@@ -81,14 +147,13 @@ pub fn sensor_sampling_system(
 
     for mut usv in usv_query.iter_mut() {
         if usv.multispectral_sensor_active {
-            // Using the updated slice method from models.rs if multi-point sampling is triggered
             usv.target_camouflage_color = Color::rgb(adaptive_color.x, adaptive_color.y, adaptive_color.z);
             usv.stealth_alpha = calculated_stealth; 
         }
     }
 }
 
-/// Adaptive Optical Signature Minimization System.
+/// Adaptive Multispectral Camouflage Application System.
 pub fn apply_camouflage_system(
     usv_query: Query<(&UnmannedSurfaceVehicle, &Handle<StandardMaterial>), Changed<UnmannedSurfaceVehicle>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -111,75 +176,15 @@ pub fn apply_camouflage_system(
     }
 }
 
-// --- MATHEMATICALLY OPTIMIZED GERSTNER WAVE ENGINE ---
-
-#[inline(always)]
-fn calculate_gerstner_component(
-    pos: Vec2, 
-    d: Vec2, 
-    stepness: f32, 
-    freq: f32, 
-    time: f32, 
-    amplitude: f32
-) -> Vec3 {
-    let f = freq * d.dot(pos) + time;
-    let a = stepness * amplitude / freq;
-    let (sin, cos) = f.sin_cos(); 
-
-    Vec3::new(d.x * (a * cos), a * sin, d.y * (a * cos))
-}
-
-pub fn get_total_wave_displacement(pos: Vec2, time: f32, amplitude: f32, frequency: f32) -> Vec3 {
-    let freq = frequency * 0.4;
-
-    let w1 = calculate_gerstner_component(pos, WAVE_DIR_1, 0.3, freq, time, amplitude);
-    let w2 = calculate_gerstner_component(pos, WAVE_DIR_2, 0.2, freq * 1.5, time * 1.2, amplitude);
-    let w3 = calculate_gerstner_component(pos, WAVE_DIR_3, 0.1, freq * 2.5, time * 1.8, amplitude);
-
-    w1 + w2 + w3
-}
-
-pub fn float_vehicle_system(
-    time: Res<Time>,
-    settings: Res<OceanSettings>,
-    mut query: Query<&mut Transform, With<Vehicle>>, 
-) {
-    let elapsed = time.elapsed_seconds();
-    let amp = settings.wave_amplitude;
-    let freq = settings.wave_frequency;
-    let delta = 0.8; 
-    
-    for mut transform in query.iter_mut() {
-        let x = transform.translation.x;
-        let z = transform.translation.z;
-        let current_pos = Vec2::new(x, z);
-        
-        let displacement = get_total_wave_displacement(current_pos, elapsed, amp, freq);
-        let d_forward = get_total_wave_displacement(current_pos + Vec2::new(0.0, delta), elapsed, amp, freq);
-        let d_right = get_total_wave_displacement(current_pos + Vec2::new(delta, 0.0), elapsed, amp, freq);
-
-        transform.translation.y = displacement.y + 0.8; 
-
-        let target_normal = Vec3::new(
-            displacement.y - d_right.y, 
-            delta, 
-            displacement.y - d_forward.y
-        ).normalize();
-
-        let target_rotation = Quat::from_rotation_arc(Vec3::Y, target_normal);
-        let current_yaw = transform.rotation.to_euler(EulerRot::YXZ).0;
-        
-        transform.rotation = Quat::from_rotation_y(current_yaw) * target_rotation;
-    }
-}
-
+/// Tactical Propulsion and Thruster Control Interface.
+/// Injects commanded forces and moments directly into the 6-DOF dynamic state.
 pub fn move_vehicle(
     keyboard_input: Res<ButtonInput<KeyCode>>, 
-    mut query: Query<(&mut Transform, &mut UnmannedSurfaceVehicle), With<Vehicle>>, 
+    mut query: Query<(&Transform, &mut RigidBody6DOF, &mut UnmannedSurfaceVehicle), With<Vehicle>>, 
     time: Res<Time>, 
 ) {
-    let base_propulsion_force = 12.0; 
-    let rotation_speed = 2.5; 
+    let base_propulsion_force = 22.0; 
+    let yaw_control_torque = 6.0; 
     let hull_characteristic_length: f32 = 2.0; 
     let delta_sec = time.delta_seconds();
     
@@ -187,11 +192,10 @@ pub fn move_vehicle(
     let is_w_pressed = keyboard_input.pressed(KeyCode::KeyW);
     let is_s_pressed = keyboard_input.pressed(KeyCode::KeyS);
 
-    for (mut transform, mut usv) in query.iter_mut() {
-        let current_velocity_magnitude = usv.vessel_speed;
+    for (transform, mut rb, mut usv) in query.iter_mut() {
+        let current_velocity_magnitude = rb.linear_velocity.length();
         let froude_number = current_velocity_magnitude / froude_denominator;
 
-        // Comply with core FVM modules linked directly to the hydrodynamics schema
         let dynamic_drag_modifier = if froude_number >= CRITICAL_FROUDE_NUMBER { 0.55 } else { 1.00 };
 
         if is_w_pressed {
@@ -203,22 +207,23 @@ pub fn move_vehicle(
             usv.hydrodynamics.is_flow_steady = false;
         }
 
-        let effective_speed = (base_propulsion_force - usv.hydrodynamics.current_drag).max(0.0);
-        usv.vessel_speed = if is_w_pressed { effective_speed } else { 0.0 };
+        let effective_thrust = (base_propulsion_force - usv.hydrodynamics.current_drag).max(0.0);
+        usv.vessel_speed = current_velocity_magnitude;
 
+        // Apply propulsion vector along heading axis
+        let forward = transform.forward();
         if is_w_pressed {
-            let forward = transform.forward();
-            transform.translation += forward * effective_speed * delta_sec;
+            rb.linear_velocity += forward * (effective_thrust * delta_sec);
         } else if is_s_pressed {
-            let back = transform.back();
-            transform.translation += back * (effective_speed * 0.5) * delta_sec;
+            rb.linear_velocity -= forward * (effective_thrust * 0.5 * delta_sec);
         }
         
+        // Rudder/thruster moment applied directly around yaw axis
         if keyboard_input.pressed(KeyCode::KeyA) {
-            transform.rotate_y(rotation_speed * delta_sec);
+            rb.angular_velocity.y += yaw_control_torque * delta_sec;
         }
         if keyboard_input.pressed(KeyCode::KeyD) {
-            transform.rotate_y(-rotation_speed * delta_sec);
+            rb.angular_velocity.y -= yaw_control_torque * delta_sec;
         }
     }
 }
