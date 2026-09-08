@@ -31,7 +31,6 @@ A high-performance, modular digital twin framework developed in Rust for simulat
 
 ## System Architecture
 
-```text
 src/
 ├── main.rs            # Engine lifecycle, state orchestration, and deterministic schedule.
 ├── hydrodynamics.rs   # 6-DOF Cummins equations of motion & SNAME damping solver.
