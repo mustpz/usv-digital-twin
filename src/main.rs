@@ -6,6 +6,7 @@ pub mod optics;
 mod constants;
 mod environment;
 mod vehicle;
+mod hydrodynamics;
 mod scene;
 mod models;
 mod ui; 
@@ -18,10 +19,10 @@ use environment::{setup_ocean_environment, sync_ocean_material, OceanMaterial};
 use vehicle::{
     spawn_vehicle, 
     move_vehicle, 
-    float_vehicle_system, 
     sensor_sampling_system, 
     apply_camouflage_system 
 };
+use hydrodynamics::solve_hydrodynamic_6dof_system;
 use scene::{setup_scene, update_scene_system}; 
 use constants::OceanSettings; 
 use ui::update_ui_system;     
@@ -70,8 +71,14 @@ fn main() {
             setup_ocean_environment,
             spawn_vehicle 
         ))
+
+        // 6. DETERMINISTIC 6-DOF PHYSICS LOOP
+        // FixedUpdate ensures differential equations of motion remain frame-rate independent
+        .add_systems(FixedUpdate, (
+            solve_hydrodynamic_6dof_system,
+        ))
         
-        // 6. UPDATE SYSTEMS (The Deterministic Simulation Loop)
+        // 7. UPDATE SYSTEMS (Per-Frame Orchestration Loop)
         .add_systems(Update, (
             // A. INPUT PHASE
             update_ui_system,
@@ -89,10 +96,8 @@ fn main() {
             // E. VISUALIZATION PHASE: Apply the sampled color to the USV's hull
             apply_camouflage_system.after(sensor_sampling_system),
             
-            // F. KINEMATICS PHASE: Calculate movement and buoyancy
-            (move_vehicle, float_vehicle_system)
-                .chain() 
-                .after(sync_ocean_material),
+            // F. PROPULSION & ACTUATOR CONTROL PHASE
+            move_vehicle.after(update_ui_system),
                 
             // G. DETERMINISTIC PROTECTION & TELEMETRY NETWORK LAYER
             crate::biomimicry::calculate_biomimetic_evasion_system.after(telemetry_ingress_bridge_system),
