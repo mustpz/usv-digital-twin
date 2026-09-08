@@ -21,17 +21,61 @@ pub const IDEAL_FLOW_VELOCITY: f32 = 5.0;
 // --- Hydrodynamic & Fluids Architecture Constants ---
 // =========================================================================
 
-pub const SEAWATER_DENSITY: f32 = 1025.9;
+/// Standard seawater density (kg/m^3) conforming to ITTC standard salinity & 15°C baseline.
+pub const SEAWATER_DENSITY: f32 = 1025.0;
 pub const SEAWATER_KINEMATIC_VISCOSITY: f32 = 0.00000119;
-pub const GRAVITY: f32 = 9.80665;
+
+/// Standard acceleration due to gravity (m/s^2) per WGS 84 / ISO 80000-3 standard.
+pub const GRAVITY: f32 = 9.81;
+
 pub const ADDED_MASS_COEFFICIENT: f32 = 0.08;
-pub const CRITICAL_REYNOLDS_NUMBER: f32 = 500_000.0; // Added readability separator
+pub const CRITICAL_REYNOLDS_NUMBER: f32 = 500_000.0;
 pub const CRITICAL_FROUDE_NUMBER: f32 = 0.4;
 pub const SKIN_FRICTION_COEFFICIENT: f32 = 0.0075;
 
 /// Seawater Bulk Modulus at 15°C (Pa).
 pub const SEAWATER_BULK_MODULUS: f32 = 2.34e9;
 pub const SEAWATER_BULK_MODULUS_F64: f64 = 2.34e9;
+
+// =========================================================================
+// --- 6-DOF Hydrodynamic Coefficients (SNAME Notation) ---
+// =========================================================================
+
+// --- Added Mass Derivatives (kg for translational, kg*m^2 for rotational) ---
+/// Surge added mass derivative: X_udot (kg)
+pub const HYDRO_ADDED_MASS_X_UDOT: f32 = 12.5;
+/// Sway added mass derivative: Y_vdot (kg)
+pub const HYDRO_ADDED_MASS_Y_VDOT: f32 = 65.0;
+/// Heave added mass derivative: Z_wdot (kg)
+pub const HYDRO_ADDED_MASS_Z_WDOT: f32 = 110.0;
+/// Roll added mass moment of inertia derivative: K_pdot (kg*m^2)
+pub const HYDRO_ADDED_MASS_K_PDOT: f32 = 8.2;
+/// Pitch added mass moment of inertia derivative: M_qdot (kg*m^2)
+pub const HYDRO_ADDED_MASS_M_QDOT: f32 = 24.5;
+/// Yaw added mass moment of inertia derivative: N_rdot (kg*m^2)
+pub const HYDRO_ADDED_MASS_N_RDOT: f32 = 18.0;
+
+// --- Linear Viscous Damping Coefficients ---
+/// Surge linear damping: X_u (N / (m/s))
+pub const HYDRO_DAMPING_LINEAR_SURGE: f32 = 45.0;
+/// Sway linear damping: Y_v (N / (m/s))
+pub const HYDRO_DAMPING_LINEAR_SWAY: f32 = 60.0;
+/// Heave linear damping: Z_w (N / (m/s))
+pub const HYDRO_DAMPING_LINEAR_HEAVE: f32 = 160.0;
+/// Roll linear damping: K_p (N*m / (rad/s))
+pub const HYDRO_DAMPING_LINEAR_ROLL: f32 = 28.0;
+/// Pitch linear damping: M_q (N*m / (rad/s))
+pub const HYDRO_DAMPING_LINEAR_PITCH: f32 = 35.0;
+/// Yaw linear damping: N_r (N*m / (rad/s))
+pub const HYDRO_DAMPING_LINEAR_YAW: f32 = 22.0;
+
+// --- Quadratic (Cross-Flow / Non-linear) Damping Coefficients ---
+/// Surge non-linear drag: X_u|u| (N / (m/s)^2)
+pub const HYDRO_DAMPING_QUAD_SURGE: f32 = 24.0;
+/// Sway non-linear drag: Y_v|v| (N / (m/s)^2)
+pub const HYDRO_DAMPING_QUAD_SWAY: f32 = 135.0;
+/// Yaw non-linear drag: N_r|r| (N*m / (rad/s)^2)
+pub const HYDRO_DAMPING_QUAD_YAW: f32 = 38.0;
 
 // =========================================================================
 // --- Optical & Multispectral Attenuation Constants ---
@@ -90,7 +134,7 @@ pub struct OceanSettings {
 }
 
 impl Default for OceanSettings {
-    #[inline] // Hint to compiler to inline this allocation at initialization sites
+    #[inline]
     fn default() -> Self {
         Self {
             wave_amplitude: 0.6,    
