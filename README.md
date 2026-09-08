@@ -1,79 +1,49 @@
-# Real-Time Digital Twin Prototype for USV Multispectral Camouflage Systems
+# Real-Time Digital Twin Framework for USV Multispectral Camouflage Systems
 
 ## Project Vision
-A modular real-time digital twin framework for simulating environmental interaction 
-and visual signature behavior of Unmanned Surface Vehicles (USVs). This project focuses on building a real-time simulation environment to model multispectral camouflage responses under dynamic environmental conditions. Multispectral modeling is planned for future implementation and is not yet included.
+A high-performance, modular digital twin framework developed in Rust for simulating environmental interaction, 6-DOF seakeeping hydrodynamics, and dynamic signature behavior of Unmanned Surface Vehicles (USVs). The platform bridges theoretical photonics, fluid dynamics, and tactical autonomy on edge-computing hardware.
 
 ## Current Demo 
-![Current Simulation State](./demo.gif) 
+![Current Simulation State](./demo.gif)
 
- ### The Current Prototype: Core Implementation
+### Core Capabilities
+* **Adaptive Signature Management:** Closed-loop pipeline sampling environmental turbidity and water optics to dynamically modulate hull material properties in real time.
+* **6-DOF Seakeeping Dynamics:** Deterministic Cummins-style rigid body solver modeling surge, sway, heave, roll, pitch, and yaw with SNAME-compliant added mass tensors and coupled viscous damping.
+* **Discretized Hull Buoyancy:** 8-point volumetric hull discretization computing localized Archimedean buoyancy, surface normal pressure interactions, and transverse metacentric righting stability.
+* **Analytical Gerstner Wave Synthesis:** Multi-layered trochoidal wave displacement engine exporting exact CPU-side surface elevations and spatial derivatives for zero-lag physics coupling.
+* **Photonic Ocean Shading:** Physics-based ocean rendering applying the Beer-Lambert extinction law and Fresnel reflectance profiles via custom WGSL shaders.
+* **Autonomous Decision & Regulatory Logic:** Deterministic state machine executing bio-inspired evasion tactics alongside COLREG (Rules 14, 15, 16) collision avoidance protocols.
 
-* **Adaptive Signature Management:** A Closed-Loop system that samples turbidity and spectral data to adjust the USV's optical signature in real-time—bridging theoretical photonics with practical naval stealth applications.
-* **Gerstner Wave Synthesis:** Multi-layered displacement model producing realistic "sharp" crests and horizontal vertex displacement for a naturally turbulent sea state.
-* **Non-Repetitive Foam Dynamics:** Adaptive foam generation triggered by wave height, utilizing a triple-overlay normal map technique with asymmetrical panning to eliminate visual repetition.
-* **1:1 Physics Synchronization:** Vessel buoyancy is fully coupled with GPU displacement, enabling realistic Pitch and Roll responses based on dynamic wave slopes.
-* **Physics-Based Rendering:** Ocean color is dynamically computed via the Beer-Lambert Law, using turbidity as a physical extinction coefficient for light absorption and scattering.
+---
 
+## Technical Framework & Stack
 
-### Architectural Choice: Why Gerstner Waves Over FFT?
-
-* **Hardware Scalability:** Avoids heavy FFT compute overhead, maintaining **60+ FPS on mid-range hardware (e.g., RTX 3050)**.
-* **Zero-Lag Buoyancy:** Allows instant CPU-side physics sampling, ensuring perfect synchronization between visual wave geometry and vessel kinematics.
-* **Deterministic Parameter Control:** Provides total control over environmental vectors (Salinity, Turbidity, Sea State) essential for sensor-testing Digital Twins.
-
-> 🎯 **Core Objective:** To prove that autonomous maritime platforms can interpret environmental physics to execute tactical survival decisions independently.
-
-
-### 🚧 Next Phase
-- [x] **Asynchronous Bidirectional Telemetry Pipeline & Closed-Loop API Integration** (Completed)
-- [X] **Bio-Inspired Adaptive Escape Dynamics** (Core State Machine & ECS Framework Compiled)
-- [ ] **Real-Time Multi-Spectral Camouflage Response Subsystems**
- 
-
-## ## Technical Framework & Core Stack
-
-| Component | Technology | Architectural Role & Implementation |
+| Layer | Technology | Architectural Role |
 | :--- | :--- | :--- |
-| **Core Engine** | Rust | Memory safety, zero-cost abstractions, data-driven simulation logic. |
-| **Framework** | Bevy 0.13 | Entity Component System (ECS) driving massive entity parallelization. |
-| **Networking** | Reqwest & Tokio | Non-blocking Async I/O runtime for continuous telemetry ingress/egress. |
-| **Serialization** | Serde & JSON | Low-overhead data serialization for edge-computing telemetry packets. |
-| **Shading & Physics**| WGSL | Custom WebGPU shaders for procedural waves and Beer-Lambert attenuation. |
-| **User Interface** | bevy_egui | Immediate-mode GUI for real-time optical and hydrodynamic manipulation. |
+| **Core Engine** | Rust | Memory safety, zero-cost abstractions, data-driven systems. |
+| **Architecture** | Bevy (ECS) | High-throughput entity parallelization and deterministic schedule. |
+| **Networking** | Reqwest & Tokio | Non-blocking asynchronous I/O runtime for edge telemetry streams. |
+| **Serialization**| Serde & JSON | High-efficiency structured payload encoding/decoding. |
+| **Graphics** | WebGPU / WGSL | Hardware-accelerated procedural wave synthesis and light attenuation. |
+| **Interface** | bevy_egui | Immediate-mode GUI for dynamic oceanographic parameter tuning. |
 
-### 🛠️ Architecture Highlights
-* **Closed-Loop Isolation:** Designed entirely for local edge-computing. Zero dependency on non-deterministic external cloud APIs, ensuring maximum tactical data security.
-* **Zero-Blocking Architecture:** Network operations run fully asynchronous via dedicated connection pools, guarantees 0% frame drops across the core Bevy simulation loop.
+---
 
-## Architecture 
-src
+## System Architecture
 
-main.rs * Application Orchestrator: Initializes the Bevy engine, registers global resources, and schedules system execution orders.
-
-ui.rs * Interaction Layer: Implements the bevy_egui control panel. It acts as the primary interface for real-time parameter manipulation of the OceanSettings resource.
-
-constants.rs * Physical Core: Defines the OceanSettings struct and stores hardcoded environmental constants (e.g., Sea level pressure, refractive index base).
-
-optics/ (Physics & Active Stealth Engine): * core.rs: Contains vector-form Snell’s Law, Schlick's Fresnel reflectance, seawater IOR, and Beer-Lambert attenuation profiles (Aegean, Caribbean, Baltic).
-
-render.rs: Manages dynamic transparency, FLIR thermal camera simulation, and screen-space tactical HUD readouts using Bevy PBR assets.
-
-mod.rs: Packages background physics loops and foreground rendering into a modular OpticsPlugin.
-
-scene.rs * Environment & Rendering: Manages the infinite ocean tiling system, volumetric fog, and orbital wave oscillations. It bridges the physical data from optics.rs to the visual mesh.
-
-vehicle.rs * Kinematic Controller: Defines the USV (Unmanned Surface Vehicle) entity, its spawn parameters, and the real-time movement logic responsive to sea state dynamics.
-
-environment.rs * Atmospheric Modeling: Handles broader environmental states and global simulation parameters.
-
-models.rs * Hardware Abstraction: Future module reserved for multispectral sensor models and advanced camera optics.
-
-telemetry.rs * Design and initialization of an asynchronous data pipeline to handle real-time vehicle diagnostics and optical sensor telemetry. Encapsulates critical kinematic and environmental data streams, including depth parameters and velocity matrices. Prepares the data layer for asynchronous transmission to remote telemetry dashboards or control hubs.
-
-biomimicry.rs * Implements a deterministic, low-latency state machine inspired by cephalopod mechanics to execute tactical autonomous evasion maneuvers. This layer consumes real-time async telemetry data to dynamically adapt hull kinematics and multispectral signatures against incoming hostile threat vectors.
-
-bridge.rs * Converts raw hardware telemetry data into actionable threat coefficients for the biomimetic escape matrix. It serves as the deterministic, non-blocking bridge connecting real-world sensors to the autonomous decision loop.
+```text
+src/
+├── main.rs            # Engine lifecycle, state orchestration, and deterministic schedule.
+├── hydrodynamics.rs   # 6-DOF Cummins equations of motion & SNAME damping solver.
+├── vehicle.rs         # RigidBody6DOF state, hull cell layout, and thruster controls.
+├── environment.rs     # Analytical Gerstner wave displacement and normal batch sampler.
+├── constants.rs       # Hydrodynamic added mass derivatives and oceanographic constants.
+├── biomimicry.rs      # Cephalopod evasion state machine and COLREGs decision logic.
+├── optics/            # Vectorized Snell's law, Fresnel reflectance, and Beer-Lambert modules.
+├── bridge.rs          # Hardware telemetry ingress interface and sensor bridge.
+├── telemetry.rs       # Non-blocking async network streaming pipeline.
+├── scene.rs           # Environment mesh generation and atmospheric fog synchronization.
+└── ui.rs              # Real-time operational command center interface.
 
 
 ## Theoretical Foundation & References
@@ -121,6 +91,9 @@ These references guide the future of implementation of sensor and optical respon
   - *COLREG Rule 14 Compliance (Head-on Situation):* Implemented automated reciprocal approach detection utilizing 3D vector dot-product geometry, forcing the USV to execute a deterministic course alteration to starboard (right).
   - *COLREG Rule 15 & 16 Compliance (Crossing Situation):* Integrated a real-time give-way kinematics solver that identifies crossing threats from the starboard vector and dynamically computes an avoidance path clear astern of the target vessel.
 
+- [x] **6-DOF Hydrodynamics & Seakeeping Dynamics Engine**
+  - Upgraded the vessel physics from single-point kinematics to a deterministic 6-DOF Cummins-style rigid body solver utilizing an 8-point volumetric hull discretization for localized Archimedean buoyancy, analytical wave surface normal sampling, metacentric transverse righting moments, and SNAME-compliant virtual mass and coupled linear/quadratic damping in a fixed-step simulation loop. 
+
 ### 🚧 In Progress
 
 - [ ] **Full Multispectral Camouflage & Perception Engine**
@@ -139,9 +112,6 @@ These references guide the future of implementation of sensor and optical respon
 
 - [ ] **Infrared (IR) & Active Thermal Signature Simulation**
   - *Objective:* Simulating thermodynamic dissipation profiles across the USV's hull. Integrating high-fidelity Long-Wave Infrared (LWIR) and Mid-Wave Infrared (MWIR) sensor feedback loops to test advanced multi-spectral camouflage efficacy against airborne thermal surveillance assets.
-
-- [ ] **Deterministic Autonomous Decision-Making & Rules-of-the-Road (COLREGs) Layer**
-  - *Objective:* Integrating a fully deterministic, low-latency classical logic framework combined with International Regulations for Preventing Collisions at Sea (COLREGs). This layer will govern ethical maritime navigation constraints and autonomous threat-avoidance priorites without relying on non-deterministic cloud APIs.
 
 
 
